@@ -20,9 +20,9 @@ def _fvcom_options(options):
     defaults=container()
      
     defaults.useLL = True
-    defaults.gridDim = '3D'
+    defaults.gridDim = '2D'
+    defaults.layer='da'
     defaults.interpolation = 'triinterp'
-    defaults.singlelayer = False
     defaults.saveOutput = False
      
     for key in options:
@@ -34,10 +34,12 @@ def _fvcom_options(options):
     if defaults.useLL:
         defaults.reqvar += ['lon', 'lat']
     
-    if '2D' in defaults.gridDim:
+    if ('2D' in defaults.gridDim) and ('da' in str(defaults.layer)):
         defaults.reqvar += ['ua', 'va']
+    elif '2D' in defaults.gridDim:
+        defaults.reqvar += ['u', 'v']
     elif '3D' in defaults.gridDim:
-        defaults.reqvar += ['u', 'v', 'ww']
+        defaults.reqvar += ['u', 'v', 'ww', 'siglay', 'siglev']
     else:
         print('gridDim must be 2D or 3D!')
     

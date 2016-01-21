@@ -26,20 +26,20 @@ class pyticle:
             
         # Load the required variables for specified model type
         if debug: print(' Loading model grid')
-        self.grid = load_grid(data, self.opt, debug)
-           
-        # Set initial particle data
-        if debug: print(' Setting particle locations')
-        self.particles = set_particles(self.grid, locations, self.opt.useLL, debug)
+        self.grid = set_grid(self, data)
         
         # Deal with time setup
         if debug: print(' Setup time')
-        self.time = time_setup(self.grid, self.opt, debug)
+        self.time = set_time(self)
+           
+        # Set initial particle data
+        if debug: print(' Setting particle locations')
+        self.particles = set_particles(self, locations)
             
         # Initialize output file
         if self.opt.saveOutput:
             if debug: print(' Initializing netcdf output')
-            init_netcdf(self, outfile, debug)
+            init_netcdf(self, outfile)
             self.opt.outfile = outfile       
             
         if debug: print(' pyticle initialized!')
