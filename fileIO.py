@@ -58,19 +58,19 @@ def init_netcdf(self,outfile):
 
     return
 
-@profile
 def save_netcdf(self):
     
     loop = self.particles.loop
 
-    ncid=n4.Dataset(self.opt.outfile,'r+')
+    ncid=n4.Dataset(self.opt.outfile,'r+', format=self.opt.ncformat)
 
     #save particle positions and velocities
     ncid.variables['x'][loop, :]=self.particles.x
     ncid.variables['y'][loop, :]=self.particles.y
-    lon, lat = self.grid.proj(self.particles.x, self.particles.y, inverse=True)
-    ncid.variables['lon'][loop, :] = lon
-    ncid.variables['lat'][loop, :] = lat
+    if self.opt.useLL:
+        lon, lat = self.grid.proj(self.particles.x, self.particles.y, inverse=True)
+        ncid.variables['lon'][loop, :] = lon
+        ncid.variables['lat'][loop, :] = lat
     ncid.variables['u'][loop, :] = self.particles.u
     ncid.variables['v'][loop, :] = self.particles.v
     

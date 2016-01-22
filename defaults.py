@@ -25,7 +25,7 @@ def _fvcom_options(options):
     defaults.layer = 0
     defaults.interpolation = 'triinterp'
     defaults.saveOutput = True
-    defaults.ncformat = 'NETCDF3_CLASSIC'
+    defaults.ncformat = 'NETCDF3_64BIT'
     defaults.zlib = True
     defaults.lsd = 3 
     

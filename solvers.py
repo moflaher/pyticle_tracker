@@ -17,7 +17,6 @@ def rungekutta(self):
     if '3D' in self.opt.gridDim:
         chiz = np.zeros((particles.npts, 4))
 
-
     for ns in range(0, mstage):
         xpt  = particles.x  + (a_rk[ns] * self.time.dt) * chix[:, ns]
         ypt  = particles.y  + (a_rk[ns] * self.time.dt) * chiy[:, ns]

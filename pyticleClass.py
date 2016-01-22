@@ -54,6 +54,9 @@ class pyticle:
         if '3D' in self.opt.gridDim:
             self.grid.w1 = self.grid.ww[self.time.starttime]
         
+        # Progress counter
+        cnt = 0
+        
         for ncstep in range(self.time.starttime, self.time.endtime):
             for interpstep in range(self.time.interp):
                 
@@ -77,12 +80,16 @@ class pyticle:
             
                 self.particles.time = self.grid.time[ncstep] * f1 +\
                                       self.grid.time[ncstep + 1] * f2
-                self.particles.loop += 1
-                                     
-                save_netcdf(self)
                 
+                # Only save output when specified based on outputratio
+                if np.mod(interpstep, self.time.out) == 0:
+                    self.particles.loop += 1
+                    save_netcdf(self)
+                    
+                cnt += 1
+                                
                 # The code starts at "step 2" as step one happens during initialization
-                print('Completed step {}/{}'.format(self.particles.loop +1 , self.time.timesteps))
+                print('Completed step {}/{}'.format(cnt +1 , self.time.totalsteps))
             
             
         

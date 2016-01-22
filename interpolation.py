@@ -13,8 +13,6 @@ def interpolate(self, field, particles=[]):
     
     return vel
 
-
-@profile
 def _triinterp(self, field, particles):
     
     

@@ -147,12 +147,13 @@ def set_time(self):
                      time.timestepin2*(1/time.interp)    
     time.time = time.timein1
     time.time2 = time.timein1*((1-time.interp)/-time.interp) +\
-                     time.timein2*(1/time.interp)   
+                 time.timein2*(1/time.interp)   
     # Assuming days 
     # Need to improve time handling in general
     time.dt = (time.time2 - time.time) * 24*60*60
     
     time.timesteps = 1 + ((time.endtime - time.starttime) * time.interp/time.out)
+    time.totalsteps = 1 + ((time.endtime - time.starttime) * time.interp)
 
     return time
     
