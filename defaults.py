@@ -1,3 +1,4 @@
+from __future__ import division, print_function
 from utilities import *
 
 
@@ -21,15 +22,30 @@ def _fvcom_options(options):
      
     defaults.useLL = True
     defaults.gridDim = '2D'
-    defaults.layer='da'
+    defaults.layer = 0
     defaults.interpolation = 'triinterp'
-    defaults.saveOutput = False
+    defaults.saveOutput = True
+    defaults.ncformat = 'NETCDF3_CLASSIC'
+    defaults.zlib = True
+    defaults.lsd = 3 
+    
+    # Default time runs for whole run.
+    defaults.starttime = 0
+    defaults.endtime = -2
+    
+    # Input timestep is divided by interpolationratio
+    defaults.interpolationratio = 12
+    
+    # Output timestep every x many interpolationratio
+    # EX: input time is 1 hour, interpolation ratio is 20 (3 minutes)
+    #     outputratio is 2 then data is saved every 6 minutes.
+    defaults.outputratio = 1
      
     for key in options:
         setattr(defaults, key, options[key])
      
     # Define required vars based on defaults and/or options
-    defaults.reqvar = ['x', 'y']
+    defaults.reqvar = ['x', 'y', 'xc', 'yc', 'time']
      
     if defaults.useLL:
         defaults.reqvar += ['lon', 'lat']
@@ -39,7 +55,7 @@ def _fvcom_options(options):
     elif '2D' in defaults.gridDim:
         defaults.reqvar += ['u', 'v']
     elif '3D' in defaults.gridDim:
-        defaults.reqvar += ['u', 'v', 'ww', 'siglay', 'siglev']
+        defaults.reqvar += ['u', 'v', 'ww', 'siglay', 'siglev', 'h', 'el']
     else:
         print('gridDim must be 2D or 3D!')
     

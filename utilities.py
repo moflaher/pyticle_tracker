@@ -1,4 +1,4 @@
-from __future__ import print_function
+from __future__ import division, print_function
 import pyproj as pyp
 from scipy.io import netcdf
 import six
@@ -17,25 +17,33 @@ def set_particles(self, locations):
     locations = np.atleast_2d(locations)
     
     if self.opt.useLL:
-        particles.lon1 = locations[:, 0]
-        particles.lat1 = locations[:, 1]
-        x, y = self.grid.proj(particles.lon1, particles.lat1)
-        particles.x1 = x
-        particles.y1 = y
+        particles.lon = locations[:, 0]
+        particles.lat = locations[:, 1]
+        x, y = self.grid.proj(particles.lon, particles.lat)
+        particles.x = x
+        particles.y = y
     else:
-        particles.x1 = x
-        particles.y1 = y
+        particles.x = x
+        particles.y = y
+        
+    particles.xpt = particles.x
+    particles.ypt = particles.y           
         
     if '3D' in self.opt.gridDim:
-        particles.z1 = locations[:,0]
+        particles.z = locations[:,0]
+        particles.zpt = particles.z
     
-    #particles.time1 = self.time.
-    
+    particles.indomain = self.grid.finder.__call__(particles.x, particles.y)
+    particles.time = self.time.time
+        
     # Run interp code here to get particle velocities here
-    particles.u1 = interpolate(self, 'u', particles)
-    particles.v1 = interpolate(self, 'v', particles)   
+    particles.u = interpolate(self, self.grid.u[particles.time,], particles)
+    particles.v = interpolate(self, self.grid.v[particles.time,], particles)   
     if '3D' in self.opt.gridDim:
-        particles.w1 = interpolate(self, 'w', particles)    
+        particles.w = interpolate(self, self.grid.ww[particles.time,], particles)    
+        
+    particles.npts = len(particles.x)
+    particles.loop = 0
     
     return particles           
     
@@ -74,10 +82,22 @@ def _load_fvcom(data, options, debug):
         if ('node' in ncid.dimensions):
             data['node'] = ncid.dimensions['node']  
            
-    grid = container()        
+    # Initialize empty object
+    grid = container()       
+    
+    # Add the raw data as hidden
+    grid._data = data
+    
+    # Load the proper data 
     for key in options.reqvar:
-        setattr(grid, key, data[key])   
-    grid.finder = mplt.Triangulation(grid.x, grid.y, grid.nv).get_trifinder()
+        setattr(grid, key, data[key])  
+        
+    # Initialize Traiangulation and finder
+    grid.trigridxy = mplt.Triangulation(grid.x, grid.y, grid.nv)
+    grid.finder = grid.trigridxy.get_trifinder()
+    if options.useLL:
+        grid.trigrid = mplt.Triangulation(grid.lon, grid.lat, grid.nv)
+    
     
     # Handle 2D cases
     if ('2D' in options.gridDim) and ('da' in str(options.layer)):
@@ -107,6 +127,33 @@ def _load_fvcom(data, options, debug):
 def set_time(self):
     time = container()
     
+    time.starttime = self.opt.starttime
+    # Special handling of default case.
+    if self.opt.endtime == -2:
+        time.endtime = len(self.grid.time)-2
+    else:
+        time.endtime = self.opt.endtime
+
+    time.interp = self.opt.interpolationratio
+    time.out = self.opt.outputratio
+    
+    time.timestepin1 = time.starttime
+    time.timestepin2 = time.starttime+1    
+    time.timein1 = self.grid.time[time.starttime]
+    time.timein2 = self.grid.time[time.starttime+1]  
+    
+    time.timestep1 = time.timestepin1
+    time.timestep2 = time.timestepin1*((1-time.interp)/-time.interp) +\
+                     time.timestepin2*(1/time.interp)    
+    time.time = time.timein1
+    time.time2 = time.timein1*((1-time.interp)/-time.interp) +\
+                     time.timein2*(1/time.interp)   
+    # Assuming days 
+    # Need to improve time handling in general
+    time.dt = (time.time2 - time.time) * 24*60*60
+    
+    time.timesteps = 1 + ((time.endtime - time.starttime) * time.interp/time.out)
+
     return time
     
         

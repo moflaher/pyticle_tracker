@@ -1,7 +1,8 @@
-from __future__ import print_function
+from __future__ import division, print_function
 from defaults import *
 from fileIO import *
 from utilities import *
+from solvers import *
 
 class pyticle:
     """
@@ -46,8 +47,42 @@ class pyticle:
         
         return
         
-            
+     
+    def run(self):
+        self.grid.u1 = self.grid.u[self.time.starttime]
+        self.grid.v1 = self.grid.v[self.time.starttime]
+        if '3D' in self.opt.gridDim:
+            self.grid.w1 = self.grid.ww[self.time.starttime]
         
+        for ncstep in range(self.time.starttime, self.time.endtime):
+            for interpstep in range(self.time.interp):
+                
+                # Linearly interpolate fields in time
+                f1 = (interpstep - self.time.interp + 1) / -self.time.interp
+                f2 = (interpstep + 1) / self.time.interp
+                
+                self.grid.u2 = self.grid.u[ncstep,:]*f1 + self.grid.u[ncstep + 1,:]
+                self.grid.v2 = self.grid.v[ncstep,:]*f1 + self.grid.v[ncstep + 1,:]
+                if '3D' in self.opt.gridDim:
+                    self.grid.w2 = self.grid.ww[ncstep,:]*f1 + self.grid.ww[ncstep + 1,:]
+                
+                # Move particles
+                self.particles = rungekutta(self)
+            
+                # Overwrite old velocity field with current velocity field
+                self.grid.u1 = self.grid.u2
+                self.grid.v1 = self.grid.v2
+                if '3D' in self.opt.gridDim:
+                    self.grid.w1 = self.grid.w2
+            
+                self.particles.time = self.grid.time[ncstep] * f1 +\
+                                      self.grid.time[ncstep + 1] * f2
+                self.particles.loop += 1
+                                     
+                save_netcdf(self)
+                
+                # The code starts at "step 2" as step one happens during initialization
+                print('Completed step {}/{}'.format(self.particles.loop +1 , self.time.timesteps))
             
             
         
