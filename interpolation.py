@@ -3,23 +3,74 @@ import numpy as np
 import sys
 
 
+def intriangle(xt, yt, x0, y0):
+    """
+    ** Function checks if points are in a specified triangle**
+    
+    Inputs:
+      - xt, yt - n X 3 array defining the x,y locations of each triangles node
+      - x0, y0 - The n points to check     
+           
+    """
+    
+    f1 = (y0 - yt[:, 0]) * (xt[:, 1] - xt[:, 0]) -\
+         (x0 - xt[:, 0]) * (yt[:, 1] - yt[:, 0])
+    f2 = (y0 - yt[:, 2]) * (xt[:, 0] - xt[:, 2]) -\
+         (x0 - xt[:, 2]) * (yt[:, 0] - yt[:, 2])
+    f3 = (y0 - yt[:, 1]) * (xt[:, 2] - xt[:, 1]) -\
+         (x0 - xt[:, 1]) * (yt[:, 2] - yt[:, 1])    
+    
+    return ((f1 * f3 >= 0) & (f3 * f2 >= 0))
+    
+    
 def interpolate(self, field, particles=[]):
+    """ 
+    ** Interpolates particle velocities for the given field. 
+       Using the interpolation method specified in options.**
+    
+    Inputs:
+      - self - pyticleClass
+      - field - the field to use for interpolation
+      - particles - the particles to get the velocities for
+    """
 
     if particles == []:
         particles = self.particles
     
     if 'triinterp' in self.opt.interpolation:
-        vel = _triinterp(self, field, particles)    
+        vel = _triinterpE(self, field, particles)    
     
     return vel
 
-def _triinterp(self, field, particles):
+
+def _triinterpE(self, field, particles):
+    """ 
+    ** FVCOM interpolation method for element data using grid parameters.**
+    
+    Inputs:
+      - self - pyticleClass
+      - field - the field to use for interpolation
+      - particles - the particles to get the velocities for
+    """
     
     
     grid = self.grid
-    
-    # Finder element particle is in
-    hosts = grid.finder.__call__(particles.xpt, particles.ypt)
+       
+    # Find particles indomain
+    indom = particles.indomain!=-1
+    # Get node numbers for each particles element
+    ns = grid.nv[particles.indomain[indom], :]
+    # Check if each particle is in each element if not find the particles element
+    intri = intriangle(grid.x[ns], grid.y[ns], particles.xpt[indom], particles.ypt[indom])
+    if intri.all():
+        hosts = particles.indomain
+    else:
+        # Figure out which particles aren't in there element and find there element
+        check = indom*False
+        check[indom]=~intri
+        particles.indomain[check] = grid.finder.__call__(particles.xpt[check], particles.ypt[check])
+        hosts = particles.indomain
+
     
     # Find layer
     if '2D' in self.opt.gridDim:

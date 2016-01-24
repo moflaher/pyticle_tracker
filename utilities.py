@@ -10,7 +10,70 @@ from interpolation import interpolate
 class container(object):
     pass
     
-def set_particles(self, locations):
+    
+def _set_grid(self, data):
+    """ 
+    ** Initializes grid by loading required fields from 
+       data for the particular model being used.**
+    
+    Inputs:
+      - data can be a dict with required fields or a path to an ncfile with the required fields
+    """
+    
+    if 'FVCOM' in self.opt.model:
+        grid=__load_fvcom(data, self.opt, self._debug)
+        
+    return grid  
+      
+    
+def _set_time(self):
+    """
+    ** Initializes all information related to time variables.**
+    
+    Inputs:
+      - pyticleClass
+    """
+    
+    time = container()
+    
+    time.starttime = self.opt.starttime
+    # Special handling of default case.
+    if self.opt.endtime == -2:
+        time.endtime = len(self.grid.time)-2
+    else:
+        time.endtime = self.opt.endtime
+
+    time.interp = self.opt.interpolationratio
+    time.out = self.opt.outputratio
+    
+    time.timestepin1 = time.starttime
+    time.timestepin2 = time.starttime+1    
+    time.timein1 = self.grid.time[time.starttime]
+    time.timein2 = self.grid.time[time.starttime+1]  
+    
+    time.timestep1 = time.timestepin1
+    time.timestep2 = time.timestepin1*((1-time.interp)/-time.interp) +\
+                     time.timestepin2*(1/time.interp)    
+    time.time = time.timein1
+    time.time2 = time.timein1*((1-time.interp)/-time.interp) +\
+                 time.timein2*(1/time.interp)   
+    # Assuming days 
+    # Need to improve time handling in general
+    time.dt = (time.time2 - time.time) * 24*60*60
+    
+    time.timesteps = 1 + ((time.endtime - time.starttime) * time.interp/time.out)
+    time.totalsteps = 1 + ((time.endtime - time.starttime) * time.interp)
+
+    return time
+    
+    
+def _set_particles(self, locations):
+    """
+    ** Initializes particles location, velocity, and additional fields.**
+    
+    Inputs:
+      - pyticleClass and an array of particle locations
+    """
     
     particles = container()
     
@@ -30,7 +93,7 @@ def set_particles(self, locations):
     particles.ypt = particles.y           
         
     if '3D' in self.opt.gridDim:
-        particles.z = locations[:,0]
+        particles.z = locations[:,2]
         particles.zpt = particles.z
     
     particles.indomain = self.grid.finder.__call__(particles.x, particles.y)
@@ -48,21 +111,17 @@ def set_particles(self, locations):
     return particles           
     
 
-def set_grid(self, data):
-    """ 
-        Function to pass off loading of the grid to correct function
-        depending on model type.
-    """
-    
-    if 'FVCOM' in self.opt.model:
-        grid=_load_fvcom(data, self.opt, self._debug)
-        
-    return grid
+
     
 
-def _load_fvcom(data, options, debug):
-    """ 
-        Function to load fvcom input data.
+def __load_fvcom(data, options, debug):
+    """
+    ** Loaded required grid data for FVCOM**
+    
+    Inputs:
+      - data a dict or path to ncfile
+      - options pyticleClass.opt
+      - debug pyticleClass._debug
     """
     
     if debug: print(' Loading FVCOM data')
@@ -124,38 +183,7 @@ def _load_fvcom(data, options, debug):
 
         
         
-def set_time(self):
-    time = container()
-    
-    time.starttime = self.opt.starttime
-    # Special handling of default case.
-    if self.opt.endtime == -2:
-        time.endtime = len(self.grid.time)-2
-    else:
-        time.endtime = self.opt.endtime
 
-    time.interp = self.opt.interpolationratio
-    time.out = self.opt.outputratio
-    
-    time.timestepin1 = time.starttime
-    time.timestepin2 = time.starttime+1    
-    time.timein1 = self.grid.time[time.starttime]
-    time.timein2 = self.grid.time[time.starttime+1]  
-    
-    time.timestep1 = time.timestepin1
-    time.timestep2 = time.timestepin1*((1-time.interp)/-time.interp) +\
-                     time.timestepin2*(1/time.interp)    
-    time.time = time.timein1
-    time.time2 = time.timein1*((1-time.interp)/-time.interp) +\
-                 time.timein2*(1/time.interp)   
-    # Assuming days 
-    # Need to improve time handling in general
-    time.dt = (time.time2 - time.time) * 24*60*60
-    
-    time.timesteps = 1 + ((time.endtime - time.starttime) * time.interp/time.out)
-    time.totalsteps = 1 + ((time.endtime - time.starttime) * time.interp)
-
-    return time
     
         
         

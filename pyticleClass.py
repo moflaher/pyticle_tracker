@@ -1,21 +1,25 @@
 from __future__ import division, print_function
 from defaults import *
 from fileIO import *
-from utilities import *
+from utilities import _set_particles, _set_grid, _set_time
 from solvers import *
 
 class pyticle:
     """
-    ** A class to hold the particles that will be tracked**
+    ** A class to hold the grid, options, and particles that will be tracked**
     
     Inputs:
-      - A dict or netcdf filename, either of which contain the required data.
-      - A list of locations to place particles
-      - A filepath to save the output
-      - Additional dict specifying options
+      - data - A dict or netcdf filename, either of which contain the required data.
+      - locations - A list of locations to place particles
+      - outfile - A filepath to save the output
+      
+    Optional:
+      - options - Additional dict specifying options
+      - debug - default False
+      
     """
     
-    def __init__(self, data, locations, outfile='test.nc', options={}, debug=False):
+    def __init__(self, data, locations, outfile, options={}, debug=False):
         """ Initialize pyticle class"""
 
         if debug: print('-Debug mode on-')
@@ -27,15 +31,15 @@ class pyticle:
             
         # Load the required variables for specified model type
         if debug: print(' Loading model grid')
-        self.grid = set_grid(self, data)
+        self.grid = _set_grid(self, data)
         
         # Deal with time setup
         if debug: print(' Setup time')
-        self.time = set_time(self)
+        self.time = _set_time(self)
            
         # Set initial particle data
         if debug: print(' Setting particle locations')
-        self.particles = set_particles(self, locations)
+        self.particles = _set_particles(self, locations)
             
         # Initialize output file
         if self.opt.saveOutput:
@@ -47,8 +51,16 @@ class pyticle:
         
         return
         
-     
+    
     def run(self):
+        """
+        ** Function that starts the particle tracking**
+        
+        Inputs:
+          - pyticleClass     
+               
+        """
+        
         self.grid.u1 = self.grid.u[self.time.starttime]
         self.grid.v1 = self.grid.v[self.time.starttime]
         if '3D' in self.opt.gridDim:

@@ -3,6 +3,12 @@ from interpolation import *
 
 
 def rungekutta(self):
+    """
+    ** Rungekutta4 solver. Moves particles one timestep.**
+    
+    Inputs:
+      - pyticleClass
+    """
     
     grid = self.grid
     particles = self.particles

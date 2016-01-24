@@ -5,6 +5,13 @@ import netCDF4 as n4
 import time
 
 def init_netcdf(self,outfile):
+    """ 
+    ** Initialize an ncfile in which to save output and save first step.**
+    
+    Inputs:
+      - self - pyticleClass
+      - outfile -  filepath and name
+    """
    
     if os.path.isfile(outfile):
         print('File ' + outfile + ' already exists.\nPlease remove file and rerun.\n')
@@ -58,7 +65,14 @@ def init_netcdf(self,outfile):
 
     return
 
+
 def save_netcdf(self):
+    """ 
+    ** Save the current timestep particle data to an ncfile.**
+    
+    Inputs:
+      - self - pyticleClass
+    """
     
     loop = self.particles.loop
 

@@ -3,6 +3,13 @@ from utilities import *
 
 
 def model_options(options):
+    """ 
+    ** Select which default options to run with given specified model type.
+       Also loads options that user specified.**
+    
+    Inputs:
+      - options - dict given when initializing pyticleClass
+    """
     
     if 'model' in options:
         model = options['model']
@@ -18,6 +25,12 @@ def model_options(options):
     
     
 def _fvcom_options(options):
+    """ 
+    ** Setup default and user specified options for FVCOM **
+    
+    Inputs:
+      - options - dict given when initializing pyticleClass
+    """
     defaults=container()
      
     defaults.useLL = True
@@ -26,7 +39,9 @@ def _fvcom_options(options):
     defaults.interpolation = 'triinterp'
     defaults.saveOutput = True
     defaults.ncformat = 'NETCDF3_64BIT'
-    defaults.zlib = True
+    
+    # Using zlib has a huge performance impact and it has to recompress every save
+    defaults.zlib = False
     defaults.lsd = 3 
     
     # Default time runs for whole run.
