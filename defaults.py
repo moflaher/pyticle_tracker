@@ -40,7 +40,7 @@ def _fvcom_options(options):
     defaults.saveOutput = True
     defaults.ncformat = 'NETCDF3_64BIT'
     
-    # Using zlib has a huge performance impact and it has to recompress every save
+    # Using zlib has a huge performance impact as it has to recompress every save
     defaults.zlib = False
     defaults.lsd = 3 
     

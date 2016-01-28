@@ -67,7 +67,7 @@ class pyticle:
             self.grid.w1 = self.grid.ww[self.time.starttime]
         
         # Progress counter
-        cnt = 0
+        cnt = 1
         
         for ncstep in range(self.time.starttime, self.time.endtime):
             for interpstep in range(self.time.interp):
@@ -76,8 +76,8 @@ class pyticle:
                 f1 = (interpstep - self.time.interp + 1) / -self.time.interp
                 f2 = (interpstep + 1) / self.time.interp
                 
-                self.grid.u2 = self.grid.u[ncstep,:]*f1 + self.grid.u[ncstep + 1,:]
-                self.grid.v2 = self.grid.v[ncstep,:]*f1 + self.grid.v[ncstep + 1,:]
+                self.grid.u2 = self.grid.u[ncstep, :]*f1 + self.grid.u[ncstep + 1, :]
+                self.grid.v2 = self.grid.v[ncstep, :]*f1 + self.grid.v[ncstep + 1, :]
                 if '3D' in self.opt.gridDim:
                     self.grid.w2 = self.grid.ww[ncstep,:]*f1 + self.grid.ww[ncstep + 1,:]
                 
@@ -88,20 +88,23 @@ class pyticle:
                 self.grid.u1 = self.grid.u2
                 self.grid.v1 = self.grid.v2
                 if '3D' in self.opt.gridDim:
-                    self.grid.w1 = self.grid.w2
-            
+                    self.grid.w1 = self.grid.w2            
+
                 self.particles.time = self.grid.time[ncstep] * f1 +\
                                       self.grid.time[ncstep + 1] * f2
                 
+
                 # Only save output when specified based on outputratio
-                if np.mod(interpstep, self.time.out) == 0:
+                if np.mod(cnt, self.time.out) == 0:
                     self.particles.loop += 1
                     save_netcdf(self)
                     
-                cnt += 1
+                                        
+                cnt += 1        
+                
                                 
                 # The code starts at "step 2" as step one happens during initialization
-                print('Completed step {}/{}'.format(cnt +1 , self.time.totalsteps))
+                print('Completed step {}/{}'.format(cnt , self.time.totalsteps))
             
             
         

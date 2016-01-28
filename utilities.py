@@ -45,21 +45,12 @@ def _set_time(self):
 
     time.interp = self.opt.interpolationratio
     time.out = self.opt.outputratio
+     
+    time.time = self.grid.time[time.starttime]
     
-    time.timestepin1 = time.starttime
-    time.timestepin2 = time.starttime+1    
-    time.timein1 = self.grid.time[time.starttime]
-    time.timein2 = self.grid.time[time.starttime+1]  
-    
-    time.timestep1 = time.timestepin1
-    time.timestep2 = time.timestepin1*((1-time.interp)/-time.interp) +\
-                     time.timestepin2*(1/time.interp)    
-    time.time = time.timein1
-    time.time2 = time.timein1*((1-time.interp)/-time.interp) +\
-                 time.timein2*(1/time.interp)   
     # Assuming days 
     # Need to improve time handling in general
-    time.dt = (time.time2 - time.time) * 24*60*60
+    time.dt = 24*60*60 * (self.grid.time[1]-self.grid.time[0]) / time.interp
     
     time.timesteps = 1 + ((time.endtime - time.starttime) * time.interp/time.out)
     time.totalsteps = 1 + ((time.endtime - time.starttime) * time.interp)
@@ -86,8 +77,8 @@ def _set_particles(self, locations):
         particles.x = x
         particles.y = y
     else:
-        particles.x = x
-        particles.y = y
+        particles.x = locations[:, 0]
+        particles.y = locations[:, 1]
         
     particles.xpt = particles.x
     particles.ypt = particles.y           
@@ -98,12 +89,12 @@ def _set_particles(self, locations):
     
     particles.indomain = self.grid.finder.__call__(particles.x, particles.y)
     particles.time = self.time.time
-        
+    
     # Run interp code here to get particle velocities here
-    particles.u = interpolate(self, self.grid.u[particles.time,], particles)
-    particles.v = interpolate(self, self.grid.v[particles.time,], particles)   
+    particles.u = interpolate(self, self.grid.u[self.time.starttime,], particles)
+    particles.v = interpolate(self, self.grid.v[self.time.starttime,], particles)   
     if '3D' in self.opt.gridDim:
-        particles.w = interpolate(self, self.grid.ww[particles.time,], particles)    
+        particles.w = interpolate(self, self.grid.ww[self.time.starttime,], particles)    
         
     particles.npts = len(particles.x)
     particles.loop = 0
@@ -166,18 +157,19 @@ def __load_fvcom(data, options, debug):
         grid.u = grid.u[:,options.layer,:]
         grid.v = grid.v[:,options.layer,:]
     
-    # Define the lcc projection
-    xmax = np.nanmax(grid.lon)
-    xmin = np.nanmin(grid.lon)
-    ymax = np.nanmax(grid.lat)
-    ymin = np.nanmin(grid.lat)
-    xavg = ( xmax + xmin ) * 0.5;
-    yavg = ( ymax + ymin ) * 0.5;
-    ylower = ( ymax - ymin ) * 0.25 + ymin;
-    yupper = ( ymax - ymin ) * 0.75 + ymin;
-    
-    grid.projstr = 'lcc +lon_0='+str(xavg)+' +lat_0='+str(yavg)+' +lat_1='+str(ylower)+' +lat_2='+str(yupper)
-    grid.proj = pyp.Proj(proj=grid.projstr)
+    if options.useLL:
+        # Define the lcc projection
+        xmax = np.nanmax(grid.lon)
+        xmin = np.nanmin(grid.lon)
+        ymax = np.nanmax(grid.lat)
+        ymin = np.nanmin(grid.lat)
+        xavg = ( xmax + xmin ) * 0.5;
+        yavg = ( ymax + ymin ) * 0.5;
+        ylower = ( ymax - ymin ) * 0.25 + ymin;
+        yupper = ( ymax - ymin ) * 0.75 + ymin;
+        
+        grid.projstr = 'lcc +lon_0='+str(xavg)+' +lat_0='+str(yavg)+' +lat_1='+str(ylower)+' +lat_2='+str(yupper)
+        grid.proj = pyp.Proj(proj=grid.projstr)
     
     return grid
 

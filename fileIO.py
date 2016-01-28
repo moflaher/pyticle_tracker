@@ -26,7 +26,7 @@ def init_netcdf(self,outfile):
         ncid.createVariable('u', 'd', ('time','npts'), zlib=self.opt.zlib, least_significant_digit=self.opt.lsd)
         ncid.createVariable('v', 'd', ('time','npts'), zlib=self.opt.zlib, least_significant_digit=self.opt.lsd)
         ncid.createVariable('indomain', 'i4', ('time','npts'), zlib=self.opt.zlib)
-        ncid.createVariable('time', 'd', ('time'), zlib=self.opt.zlib)
+        ncid.createVariable('time', 'f8', ('time'), zlib=self.opt.zlib)
         
         if self.opt.useLL:        
             # Add 3 to least significant digit for long lat
@@ -37,7 +37,8 @@ def init_netcdf(self,outfile):
             ncid.createVariable('z', 'd', ('time','npts'), zlib=self.opt.zlib, least_significant_digit=self.opt.lsd)
             ncid.createVariable('w', 'd', ('time','npts'), zlib=self.opt.zlib, least_significant_digit=self.opt.lsd)
 
-        ncid.__setattr__('coordinateprojection', self.grid.projstr)
+        if self.opt.useLL:
+            ncid.__setattr__('coordinateprojection', self.grid.projstr)
         ncid.__setattr__('history', 'Created on ' +time.ctime(time.time()) + ' by pyticle_tracker.' )
         ncid.__setattr__('options', str(self.opt.__dict__).replace("'", '+'))       
 

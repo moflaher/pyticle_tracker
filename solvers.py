@@ -23,11 +23,11 @@ def rungekutta(self):
     if '3D' in self.opt.gridDim:
         chiz = np.zeros((particles.npts, 4))
 
-    for ns in range(0, mstage):
-        xpt  = particles.x  + (a_rk[ns] * self.time.dt) * chix[:, ns]
-        ypt  = particles.y  + (a_rk[ns] * self.time.dt) * chiy[:, ns]
+    for ns in range(1, mstage):
+        particles.xpt  = particles.x  + (a_rk[ns] * self.time.dt) * chix[:, ns-1]        
+        particles.ypt  = particles.y  + (a_rk[ns] * self.time.dt) * chiy[:, ns-1]
         if '3D' in self.opt.gridDim:
-            zpt  = particles.z  + (a_rk[ns] * self.time.dt) * chiz[:, ns]
+            particles.zpt  = particles.z  + (a_rk[ns] * self.time.dt) * chiz[:, ns-1]
 
         uin  = ((1-c_rk[ns]) * grid.u1 + c_rk[ns] * grid.u2)
         vin  = ((1-c_rk[ns]) * grid.v1 + c_rk[ns] * grid.v2)
@@ -44,24 +44,24 @@ def rungekutta(self):
         if '3D' in self.opt.gridDim:
             chiz[:, ns] = wsam
  
-    xpt=particles.x
-    ypt=particles.y
+    particles.xpt=particles.x
+    particles.ypt=particles.y
     if '3D' in self.opt.gridDim:
-        zpt  = particles.z
+        particles.zpt  = particles.z
         
     for ns in range(0, mstage):
-        xpt = xpt + self.time.dt * b_rk[ns] * chix[:,ns]
-        ypt = ypt + self.time.dt * b_rk[ns] * chiy[:,ns]
+        particles.xpt = particles.xpt + self.time.dt * b_rk[ns] * chix[:,ns]
+        particles.ypt = particles.ypt + self.time.dt * b_rk[ns] * chiy[:,ns]
         if '3D' in self.opt.gridDim:
-            zpt = zpt + self.time.dt * b_rk[ns] * chiz[:,ns]
+            particles.zpt = particles.zpt + self.time.dt * b_rk[ns] * chiz[:,ns]
 
     # Set particles positions and velocities for this timestep
-    particles.x = xpt
+    particles.x = particles.xpt
     particles.u = interpolate(self, uin, particles)
-    particles.y = ypt
+    particles.y = particles.ypt
     particles.v = interpolate(self, vin, particles)
     if '3D' in self.opt.gridDim:
-        particles.z = zpt
+        particles.z = particles.zpt
         particles.w = interpolate(self, win, particles)
     particles.indomain = grid.finder.__call__(particles.x, particles.y)
 

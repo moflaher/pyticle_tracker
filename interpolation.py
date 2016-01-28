@@ -105,6 +105,7 @@ def _triinterpE(self, field, particles):
              grid.a2u[2, hosts] * var_1 + grid.a2u[3, hosts] * var_2
     
     var = var_e + dvardx * x0c + dvardy * y0c
+    var[hosts==-1]=0
     
     return var
     
