@@ -77,12 +77,11 @@ class pyticle:
                 f1 = (interpstep - self.time.interp + 1) / -self.time.interp
                 f2 = (interpstep + 1) / self.time.interp
                 
-                self.grid.u2 = self.grid.u[ncstep,]*f1 + self.grid.u[ncstep + 1,]
-                self.grid.v2 = self.grid.v[ncstep,]*f1 + self.grid.v[ncstep + 1,]
+                self.grid.u2 = self.grid.u[ncstep,]*f1 + self.grid.u[ncstep + 1,]*f2
+                self.grid.v2 = self.grid.v[ncstep,]*f1 + self.grid.v[ncstep + 1,]*f2
                 if '3D' in self.opt.gridDim:
-                    self.grid.w2 = self.grid.ww[ncstep,]*f1 + self.grid.ww[ncstep + 1,]
-                    self.grid.z2 = self.grid.zeta[ncstep,]*f1 + self.grid.zeta[ncstep + 1,]
-                
+                    self.grid.w2 = self.grid.ww[ncstep,]*f1 + self.grid.ww[ncstep + 1,]*f2
+                    self.grid.z2 = self.grid.zeta[ncstep,]*f1 + self.grid.zeta[ncstep + 1,]*f2
                 # Move particles
                 self.particles = rungekutta(self)
             

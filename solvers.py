@@ -48,17 +48,16 @@ def rungekutta(self):
             
             # If particles are above the water place them in the water
             particles.zpt = np.min([particles.zpt, particles.ept], axis=0)
-            
+
             # If a particles is within cutoff (default - 1cm) of bottom stop movement
             particles.inwater = (particles.zpt + particles.hpt) > self.opt.cutoff
             # And if they are at the bottom put them at the bottom not below
             particles.zpt = np.max([particles.zpt, -particles.hpt], axis=0)
-            
+
             # Finally update the sigma position of the particle
             # for layer interpolation of the velocity
             particles.sigpt = np.divide(particles.zpt,
-                                        -1*(particles.hpt + particles.ept))
-                                        
+                                        -1*(particles.hpt + particles.ept))                     
             
         usam = interpolate(self, uin, particles)
         vsam = interpolate(self, vin, particles)
@@ -72,7 +71,7 @@ def rungekutta(self):
             
             # If the particle is in shallow water then limit the vertical motion
             # Default value is 1 cm
-            chiz[(particles.hpt + particles.ept) < self.opt.limitv] = 0
+            chiz[(particles.hpt + particles.ept) < self.opt.limitv, ns] = 0
         
  
     particles.xpt=particles.x
