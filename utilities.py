@@ -11,7 +11,7 @@ class container(object):
     pass
     
     
-def _set_grid(self, data):
+def _set_grid(self, data, locations):
     """ 
     ** Initializes grid by loading required fields from 
        data for the particular model being used.**
@@ -21,7 +21,7 @@ def _set_grid(self, data):
     """
     
     if 'FVCOM' in self.opt.model:
-        grid=__load_fvcom(data, self.opt, self._debug)
+        grid=__load_fvcom(data, self.opt, locations, self._debug)
         
     return grid  
       
@@ -81,13 +81,37 @@ def _set_particles(self, locations):
         particles.y = locations[:, 1]
         
     particles.xpt = particles.x
-    particles.ypt = particles.y           
+    particles.ypt = particles.y  
+    
+    particles.indomain = self.grid.finder.__call__(particles.x, particles.y)
+    if np.sum(particles.indomain != -1) == 0:
+        print('No particles are initially in the domain.')
+        sys.exit()
         
     if '3D' in self.opt.gridDim:
         particles.z = locations[:,2]
         particles.zpt = particles.z
-    
-    particles.indomain = self.grid.finder.__call__(particles.x, particles.y)
+        
+        #Find particle height
+        particles.hpt = interpolate(self, self.grid.h, particles)
+        particles.ept = interpolate(self, self.grid.zeta[self.time.starttime,], particles)
+        
+        # If particles are above the water place them in the water
+        particles.zpt = np.min([particles.zpt, particles.ept], axis=0)
+        
+        # If a particles is within cutoff (default - 1cm) of bottom stop movement
+        particles.inwater = (particles.zpt + particles.hpt) > self.opt.cutoff
+        # And if they are at the bottom put them at the bottom not below
+        particles.zpt = np.max([particles.zpt, -particles.hpt], axis=0)
+        
+        # Finally update the sigma position of the particle
+        # for layer interpolation of the velocity
+        particles.sigpt = np.divide(particles.zpt,
+                                    -1*(particles.hpt + particles.ept))   
+    else:
+        # If 2D then particles are always *vertically* in the water column
+        particles.inwater = (particles.x * 0 + 1).astype(bool)  
+
     particles.time = self.time.time
     
     # Run interp code here to get particle velocities here
@@ -105,7 +129,7 @@ def _set_particles(self, locations):
 
     
 
-def __load_fvcom(data, options, debug):
+def __load_fvcom(data, options, locations, debug):
     """
     ** Loaded required grid data for FVCOM**
     
@@ -156,6 +180,13 @@ def __load_fvcom(data, options, debug):
     elif '2D' in options.gridDim:
         grid.u = grid.u[:,options.layer,:]
         grid.v = grid.v[:,options.layer,:]
+    else:
+        # Create an array of siglay the size of the number of particles
+        # This is so the interpolation code can find the particles layer
+        grid.siglay = grid.siglay[:,0]
+        npts = len(locations[:,0])
+        grid.siglen = len(grid.siglay)
+        grid.sigrep = grid.siglay.repeat(npts).reshape(grid.siglen, npts)
     
     if options.useLL:
         # Define the lcc projection

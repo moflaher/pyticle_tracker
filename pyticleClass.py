@@ -31,7 +31,7 @@ class pyticle:
             
         # Load the required variables for specified model type
         if debug: print(' Loading model grid')
-        self.grid = _set_grid(self, data)
+        self.grid = _set_grid(self, data, locations)
         
         # Deal with time setup
         if debug: print(' Setup time')
@@ -61,10 +61,11 @@ class pyticle:
                
         """
         
-        self.grid.u1 = self.grid.u[self.time.starttime]
-        self.grid.v1 = self.grid.v[self.time.starttime]
+        self.grid.u1 = self.grid.u[self.time.starttime,]
+        self.grid.v1 = self.grid.v[self.time.starttime,]
         if '3D' in self.opt.gridDim:
-            self.grid.w1 = self.grid.ww[self.time.starttime]
+            self.grid.w1 = self.grid.ww[self.time.starttime,]
+            self.grid.z1 = self.grid.zeta[self.time.starttime,]
         
         # Progress counter
         cnt = 1
@@ -76,10 +77,11 @@ class pyticle:
                 f1 = (interpstep - self.time.interp + 1) / -self.time.interp
                 f2 = (interpstep + 1) / self.time.interp
                 
-                self.grid.u2 = self.grid.u[ncstep, :]*f1 + self.grid.u[ncstep + 1, :]
-                self.grid.v2 = self.grid.v[ncstep, :]*f1 + self.grid.v[ncstep + 1, :]
+                self.grid.u2 = self.grid.u[ncstep,]*f1 + self.grid.u[ncstep + 1,]
+                self.grid.v2 = self.grid.v[ncstep,]*f1 + self.grid.v[ncstep + 1,]
                 if '3D' in self.opt.gridDim:
-                    self.grid.w2 = self.grid.ww[ncstep,:]*f1 + self.grid.ww[ncstep + 1,:]
+                    self.grid.w2 = self.grid.ww[ncstep,]*f1 + self.grid.ww[ncstep + 1,]
+                    self.grid.z2 = self.grid.zeta[ncstep,]*f1 + self.grid.zeta[ncstep + 1,]
                 
                 # Move particles
                 self.particles = rungekutta(self)
@@ -88,7 +90,8 @@ class pyticle:
                 self.grid.u1 = self.grid.u2
                 self.grid.v1 = self.grid.v2
                 if '3D' in self.opt.gridDim:
-                    self.grid.w1 = self.grid.w2            
+                    self.grid.w1 = self.grid.w2   
+                    self.grid.z1 = self.grid.z2         
 
                 self.particles.time = self.grid.time[ncstep] * f1 +\
                                       self.grid.time[ncstep + 1] * f2

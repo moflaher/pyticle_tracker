@@ -55,12 +55,18 @@ def _fvcom_options(options):
     # EX: input time is 1 hour, interpolation ratio is 20 (3 minutes)
     #     outputratio is 2 then data is saved every 6 minutes.
     defaults.outputratio = 1
+    
+    # Stop particle motion when within X of bottom
+    defaults.cutoff = 0.01
+    
+    # Stop particle vertical motion if water depth is less them X
+    defaults.limitv = 0.01
      
     for key in options:
         setattr(defaults, key, options[key])
      
     # Define required vars based on defaults and/or options
-    defaults.reqvar = ['x', 'y', 'xc', 'yc', 'time']
+    defaults.reqvar = ['x', 'y', 'xc', 'yc', 'time', 'nele', 'node']
      
     if defaults.useLL:
         defaults.reqvar += ['lon', 'lat']
@@ -70,7 +76,7 @@ def _fvcom_options(options):
     elif '2D' in defaults.gridDim:
         defaults.reqvar += ['u', 'v']
     elif '3D' in defaults.gridDim:
-        defaults.reqvar += ['u', 'v', 'ww', 'siglay', 'siglev', 'h', 'el']
+        defaults.reqvar += ['u', 'v', 'ww', 'siglay', 'h', 'zeta']
     else:
         print('gridDim must be 2D or 3D!')
     

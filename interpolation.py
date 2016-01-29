@@ -38,9 +38,15 @@ def interpolate(self, field, particles=[]):
         particles = self.particles
     
     if 'triinterp' in self.opt.interpolation:
-        vel = _triinterpE(self, field, particles)    
+        if self.grid.nele in field.shape:
+            var = _triinterpE(self, field, particles)
+        elif self.grid.node in field.shape:
+            var = _triinterpN(self, field, particles)
+        else:
+            print("Given field doesn'''t match compatible dimensions.")
+            sys.exit()
     
-    return vel
+    return var
 
 
 def _triinterpE(self, field, particles):
@@ -56,6 +62,127 @@ def _triinterpE(self, field, particles):
     
     grid = self.grid
        
+    hosts = __find_hosts(grid, particles)
+    
+    # Find layer
+    if '2D' in self.opt.gridDim:
+        layer = None
+    else:
+        # Find the upper layer
+        layer = grid.siglen -1 - np.sum(particles.sigpt > grid.sigrep, axis=0)
+        # Find lower layer
+        layer2 = layer + 1
+        # If lower layer is below bottom use upper layer
+        # Which layer is used won't matter because the weights will handle it
+        layer2[layer2==grid.siglen] = -1
+        
+        # Initialize layers 
+        f1 = layer*0 + 0.0
+        f2 = layer*0 + 0.0
+        
+        # Set weights between layers
+        f1t = (particles.sigpt - grid.siglay[layer]) /\
+              (grid.siglay[layer] - grid.siglay[layer2])
+        f1[layer!=-1] = f1t[layer!=-1]
+        f2[layer2!=-1] = 1 - f1t[layer2!=-1]
+        
+        # Set weights for above top layer (completely use lower layer 
+        # as it doesn't have an upper layer)
+        f2[layer==-1] = 1
+        # Set weights for below botton layer (same calculation as above
+        # however the "bottom layer" siglay is -1)
+        f1t = (particles.sigpt - grid.siglay[layer]) /\
+              (grid.siglay[layer] - -1)
+        f1[layer2==-1] = f1t[layer2==-1]
+    
+    # Get distance from element center
+    x0c = particles.xpt - grid.xc[hosts]
+    y0c = particles.ypt - grid.yc[hosts] 
+
+    # Get neighbouring elements 
+    e0=grid.nbe[hosts, 0]
+    e1=grid.nbe[hosts, 1]
+    e2=grid.nbe[hosts, 2]
+    
+    def layer_vel(layer):    
+        var_e = (field[layer, hosts]).flatten()   
+        var_0 = (field[layer, e0]).flatten()
+        var_1 = (field[layer, e1]).flatten()
+        var_2 = (field[layer, e2]).flatten()
+        var_0[e0==-1] = 0
+        var_1[e1==-1] = 0
+        var_2[e2==-1] = 0        
+        
+        dvardx = grid.a1u[0, hosts] * var_e + grid.a1u[1, hosts] * var_0 +\
+                 grid.a1u[2, hosts] * var_1 + grid.a1u[3, hosts] * var_2
+        dvardy = grid.a2u[0, hosts] * var_e + grid.a2u[1, hosts] * var_0 +\
+                 grid.a2u[2, hosts] * var_1 + grid.a2u[3, hosts] * var_2
+        
+        vel = var_e + dvardx * x0c + dvardy * y0c
+        
+        return vel
+    
+    # Calculate velocities for 2D or upper layer in 3D
+    vel = layer_vel(layer) 
+        
+    if '3D' in self.opt.gridDim:
+        # Tnterpolation lower layer
+        vel2 = layer_vel(layer2)
+        # Multiply by layer weights
+        vel = vel * f1 + vel2 * f2
+     
+    # Zero velocity for any particles on land
+    vel[hosts==-1] = 0
+    # Zero velocity for any particles on the bottom   
+    vel[particles.inwater==0] = 0     
+    
+    return vel
+    
+def _triinterpN(self, field, particles):
+    """ 
+    ** FVCOM interpolation method for node data using grid parameters.**
+    
+    Inputs:
+      - self - pyticleClass
+      - field - the field to use for interpolation
+      - particles - the particles to get the depth/elevation for
+    """
+    
+    grid = self.grid
+       
+    hosts = __find_hosts(grid, particles)
+    
+    # Get distance from element center
+    x0c = particles.xpt - grid.xc[hosts]
+    y0c = particles.ypt - grid.yc[hosts] 
+    
+    # Get neighbouring elements 
+    n0=grid.nv[hosts, 0]
+    n1=grid.nv[hosts, 1]
+    n2=grid.nv[hosts, 2]
+    
+    var_0 = (field[n0]).flatten()
+    var_1 = (field[n1]).flatten()
+    var_2 = (field[n2]).flatten()    
+    
+    var0 = grid.aw0[0, hosts] * var_0 + grid.aw0[1, hosts] * var_1 + grid.aw0[2, hosts] * var_2
+    varx = grid.awx[0, hosts] * var_0 + grid.awx[1, hosts] * var_1 + grid.awx[2, hosts] * var_2
+    vary = grid.awy[0, hosts] * var_0 + grid.awy[1, hosts] * var_1 + grid.awy[2, hosts] * var_2
+    var = var0  +  varx * x0c  +  vary * y0c
+    
+    # Add code to not update land particles?
+ 
+    return var
+
+def __find_hosts(grid, particles):
+    """ 
+    ** Given an FVCOM grid and particles find the host elements of those particles**
+    
+    Inputs:
+      - grid - an FVCOM grid
+      - particles - the particles to get the depth/elevation for
+    """
+    
     # Find particles indomain
     indom = particles.indomain!=-1
     # Get node numbers for each particles element
@@ -70,46 +197,10 @@ def _triinterpE(self, field, particles):
         check[indom]=~intri
         particles.indomain[check] = grid.finder.__call__(particles.xpt[check], particles.ypt[check])
         hosts = particles.indomain
+        
+    return hosts
 
-    
-    # Find layer
-    if '2D' in self.opt.gridDim:
-        layer = None
-    else:
-        # code to find layers above and below particle
-        print('Still need to added 3D interpolation.')
-        pass
-    
-    
-    
-    # Get distance from element center
-    x0c = particles.xpt - grid.xc[hosts]
-    y0c = particles.ypt - grid.yc[hosts] 
-    
-    # Get neighbours    
-    e0=grid.nbe[hosts, 0]
-    e1=grid.nbe[hosts, 1]
-    e2=grid.nbe[hosts, 2]
-    
-    var_e = (field[layer, hosts]).flatten()   
-    var_0 = (field[layer, e0]).flatten()
-    var_1 = (field[layer, e1]).flatten()
-    var_2 = (field[layer, e2]).flatten()
-    var_0[e0==-1] = 0
-    var_1[e1==-1] = 0
-    var_2[e2==-1] = 0        
-    
-    dvardx = grid.a1u[0, hosts] * var_e + grid.a1u[1, hosts] * var_0 +\
-             grid.a1u[2, hosts] * var_1 + grid.a1u[3, hosts] * var_2
-    dvardy = grid.a2u[0, hosts] * var_e + grid.a2u[1, hosts] * var_0 +\
-             grid.a2u[2, hosts] * var_1 + grid.a2u[3, hosts] * var_2
-    
-    var = var_e + dvardx * x0c + dvardy * y0c
-    var[hosts==-1]=0
-    
-    return var
-    
-    
+
     
 def scattered():
     pass
