@@ -44,7 +44,7 @@ class pyticle:
         # Initialize output file
         if self.opt.saveOutput:
             if debug: print(' Initializing netcdf output')
-            init_netcdf(self, outfile)
+            self._ncid = init_netcdf(self, outfile)
             self.opt.outfile = outfile       
             
         if debug: print(' pyticle initialized!')
@@ -107,6 +107,7 @@ class pyticle:
                                 
                 # The code starts at "step 2" as step one happens during initialization
                 print('Completed step {}/{}'.format(cnt , self.time.totalsteps))
+        self._ncid.close()
             
             
         

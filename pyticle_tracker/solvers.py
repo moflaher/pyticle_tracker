@@ -1,6 +1,6 @@
 from __future__ import division, print_function
 from interpolation import *
-
+from interpolation import __find_hosts
 
 def rungekutta(self):
     """
@@ -94,7 +94,8 @@ def rungekutta(self):
     if '3D' in self.opt.gridDim:
         particles.z[particles.inwater] = particles.zpt[particles.inwater]
         particles.w = interpolate(self, win, particles)
-    particles.indomain = grid.finder.__call__(particles.x, particles.y)
+    #particles.indomain = grid.finder.__call__(particles.x, particles.y)
+    particles.indomain = __find_hosts(grid, particles)
 
     return particles
 

@@ -113,6 +113,7 @@ def _set_particles(self, locations):
         particles.inwater = (particles.x * 0 + 1).astype(bool)  
 
     particles.time = self.time.time
+    particles.npts = len(particles.x)
     
     # Run interp code here to get particle velocities here
     particles.u = interpolate(self, self.grid.u[self.time.starttime,], particles)
@@ -120,7 +121,6 @@ def _set_particles(self, locations):
     if '3D' in self.opt.gridDim:
         particles.w = interpolate(self, self.grid.ww[self.time.starttime,], particles)    
         
-    particles.npts = len(particles.x)
     particles.loop = 0
     
     return particles           
@@ -186,8 +186,8 @@ def __load_fvcom(data, options, locations, debug):
         grid.siglay = grid.siglay[:,0]
         npts = len(locations[:,0])
         grid.siglen = len(grid.siglay)
-        grid.sigrep = grid.siglay.repeat(npts).reshape(grid.siglen, npts)
-    
+        grid.sigrep = grid.siglay.repeat(npts).reshape(grid.siglen, npts)        
+   
     if options.useLL:
         # Define the lcc projection
         xmax = np.nanmax(grid.lon)

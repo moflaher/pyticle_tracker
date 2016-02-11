@@ -18,7 +18,7 @@ def init_netcdf(self,outfile):
         sys.exit()
     else:
         ncid=n4.Dataset(outfile, 'w', format=self.opt.ncformat)
-        ncid.createDimension('time', self.time.timesteps)        
+        ncid.createDimension('time', None)        
         ncid.createDimension('npts', self.particles.npts)
 
         ncid.createVariable('x', 'd', ('time','npts'), zlib=self.opt.zlib, least_significant_digit=self.opt.lsd)
@@ -61,10 +61,10 @@ def init_netcdf(self,outfile):
     ncid.variables['time'][0] = self.particles.time       
 
 
+    
+    #ncid.close()
 
-    ncid.close()
-
-    return
+    return ncid
 
 
 def save_netcdf(self):
@@ -77,7 +77,8 @@ def save_netcdf(self):
     
     loop = self.particles.loop
 
-    ncid=n4.Dataset(self.opt.outfile,'r+', format=self.opt.ncformat)
+    #ncid=n4.Dataset(self.opt.outfile,'r+', format=self.opt.ncformat)
+    ncid = self._ncid
 
     #save particle positions and velocities
     ncid.variables['x'][loop, :]=self.particles.x
@@ -96,6 +97,6 @@ def save_netcdf(self):
     ncid.variables['indomain'][loop,:] = self.particles.indomain
     ncid.variables['time'][loop] = self.particles.time
 
-    ncid.close()
+    #ncid.close()
 
     return

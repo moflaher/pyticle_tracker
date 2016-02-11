@@ -20,8 +20,7 @@ def intriangle(xt, yt, x0, y0):
     f3 = (y0 - yt[:, 1]) * (xt[:, 2] - xt[:, 1]) -\
          (x0 - xt[:, 1]) * (yt[:, 2] - yt[:, 1])    
     
-    return ((f1 * f3 >= 0) & (f3 * f2 >= 0))
-    
+    return ((f1 * f3 >= 0) & (f3 * f2 >= 0))  
     
 def interpolate(self, field, particles=[]):
     """ 
@@ -47,7 +46,6 @@ def interpolate(self, field, particles=[]):
             sys.exit()
     
     return var
-
 
 def _triinterpE(self, field, particles):
     """ 
@@ -100,10 +98,10 @@ def _triinterpE(self, field, particles):
     y0c = particles.ypt - grid.yc[hosts] 
 
     # Get neighbouring elements 
-    e0=grid.nbe[hosts, 0]
-    e1=grid.nbe[hosts, 1]
-    e2=grid.nbe[hosts, 2]
-    
+    e0 = grid.nbe[hosts, 0]
+    e1 = grid.nbe[hosts, 1]
+    e2 = grid.nbe[hosts, 2]    
+ 
     def layer_vel(layer):    
         var_e = (field[layer, hosts]).flatten()   
         var_0 = (field[layer, e0]).flatten()
@@ -137,7 +135,7 @@ def _triinterpE(self, field, particles):
     vel[particles.inwater==0] = 0     
     
     return vel
-    
+ 
 def _triinterpN(self, field, particles):
     """ 
     ** FVCOM interpolation method for node data using grid parameters.**
@@ -174,6 +172,7 @@ def _triinterpN(self, field, particles):
  
     return var
 
+
 def __find_hosts(grid, particles):
     """ 
     ** Given an FVCOM grid and particles find the host elements of those particles**
@@ -192,7 +191,7 @@ def __find_hosts(grid, particles):
     if intri.all():
         hosts = particles.indomain
     else:
-        # Figure out which particles aren't in there element and find there element
+        # Figure out which particles aren't in there element and find their element
         check = indom*False
         check[indom]=~intri
         particles.indomain[check] = grid.finder.__call__(particles.xpt[check], particles.ypt[check])
