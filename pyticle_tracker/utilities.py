@@ -4,6 +4,7 @@ from scipy.io import netcdf
 import six
 import matplotlib.tri as mplt
 import numpy as np
+import sys
 from interpolation import interpolate
 
 # Make a dummy class to instantiate an object that is extendable
@@ -188,7 +189,7 @@ def __load_fvcom(data, options, locations, debug):
         grid.siglen = len(grid.siglay)
         grid.sigrep = grid.siglay.repeat(npts).reshape(grid.siglen, npts)        
    
-    if options.useLL:
+    if (options.useLL) and (options.projstr==[]):
         # Define the lcc projection
         xmax = np.nanmax(grid.lon)
         xmin = np.nanmin(grid.lon)
@@ -200,7 +201,9 @@ def __load_fvcom(data, options, locations, debug):
         yupper = ( ymax - ymin ) * 0.75 + ymin;
         
         grid.projstr = 'lcc +lon_0='+str(xavg)+' +lat_0='+str(yavg)+' +lat_1='+str(ylower)+' +lat_2='+str(yupper)
-        grid.proj = pyp.Proj(proj=grid.projstr)
+        
+    if options.useLL:
+        grid.proj = pyp.Proj(proj=options.projstr)
     
     return grid
 

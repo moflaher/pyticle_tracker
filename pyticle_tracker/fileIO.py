@@ -21,12 +21,13 @@ def init_netcdf(self,outfile):
         ncid.createDimension('time', None)        
         ncid.createDimension('npts', self.particles.npts)
 
+        ncid.createVariable('time', 'f8', ('time'), zlib=self.opt.zlib)
+        ncid.createVariable('indomain', 'i4', ('time','npts'), zlib=self.opt.zlib)
         ncid.createVariable('x', 'd', ('time','npts'), zlib=self.opt.zlib, least_significant_digit=self.opt.lsd)
         ncid.createVariable('y', 'd', ('time','npts'), zlib=self.opt.zlib, least_significant_digit=self.opt.lsd)
         ncid.createVariable('u', 'd', ('time','npts'), zlib=self.opt.zlib, least_significant_digit=self.opt.lsd)
         ncid.createVariable('v', 'd', ('time','npts'), zlib=self.opt.zlib, least_significant_digit=self.opt.lsd)
-        ncid.createVariable('indomain', 'i4', ('time','npts'), zlib=self.opt.zlib)
-        ncid.createVariable('time', 'f8', ('time'), zlib=self.opt.zlib)
+
         
         if self.opt.useLL:        
             # Add 3 to least significant digit for long lat

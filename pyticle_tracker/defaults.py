@@ -40,9 +40,12 @@ def _fvcom_options(options):
     defaults.saveOutput = True
     defaults.ncformat = 'NETCDF3_64BIT'
     
+    # Specifiy the proj projstr so that the code does not default to an LCC project.
+    defaults.projstr=[]
+    
     # Using zlib has a huge performance impact as it has to recompress every save
     defaults.zlib = False
-    defaults.lsd = 3 
+    defaults.lsd = None
     
     # Default time runs for whole run.
     defaults.starttime = 0
