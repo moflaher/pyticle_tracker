@@ -203,6 +203,13 @@ def __load_fvcom(data, options, locations, debug):
         ylower = ( ymax - ymin ) * 0.25 + ymin;
         yupper = ( ymax - ymin ) * 0.75 + ymin;
 
+        grid.projstr = 'lcc +lon_0='+str(xavg)+' +lat_0='+str(yavg)+' +lat_1='+str(ylower)+' +lat_2='+str(yupper)
+
+    if options.useLL:
+        grid.proj = pyp.Proj(proj=options.projstr)
+
+    return grid
+
         grid.projstr = 'lcc +lon_0='+str(xavg)+' +lat_0='+str(yavg)+ \
                 ' +lat_1='+str(ylower)+' +lat_2='+str(yupper)
 
