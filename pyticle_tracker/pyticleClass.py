@@ -66,10 +66,11 @@ class pyticle:
         if '3D' in self.opt.gridDim:
             self.grid.w1 = self.grid.ww[self.time.starttime,]
             self.grid.z1 = self.grid.zeta[self.time.starttime,]
+        if self.opt.diffusion:
+            self.grid.viscofh1 = self.grid.viscofh[self.time.starttime,]
+            self.grid.kh1 = self.grid.kh[self.time.starttime,]
 
-        # Progress counter
-        cnt = 1
-
+        # Progress counter given by self.particles.count
         for ncstep in range(self.time.starttime, self.time.endtime):
             for interpstep in range(self.time.interp):
 
@@ -87,6 +88,13 @@ class pyticle:
                             self.grid.ww[ncstep + 1,]*f2
                     self.grid.z2 = self.grid.zeta[ncstep,]*f1 + \
                             self.grid.zeta[ncstep + 1,]*f2
+
+                if self.opt.diffusion:
+                    self.grid.viscofh2 = self.grid.viscofh[ncstep,]*f1 + \
+                            self.grid.viscofh[ncstep + 1,]*f2
+                    self.grid.kh2 = self.grid.kh[ncstep,]*f1 + \
+                            self.grid.kh[ncstep + 1,]*f2
+
                 # Move particles
                 self.particles = rungekutta(self)
 
@@ -96,22 +104,25 @@ class pyticle:
                 if '3D' in self.opt.gridDim:
                     self.grid.w1 = self.grid.w2
                     self.grid.z1 = self.grid.z2
+                if self.opt.diffusion:
+                    self.grid.viscofh1 = self.grid.viscofh2
+                    self.grid.kh1 = self.grid.kh2
 
                 self.particles.time = self.grid.time[ncstep] * f1 +\
                                       self.grid.time[ncstep + 1] * f2
 
 
                 # Only save output when specified based on outputratio
-                if np.mod(cnt, self.time.out) == 0:
+                if np.mod(self.particles.count, self.time.out) == 0:
                     self.particles.loop += 1
                     save_netcdf(self)
 
-                cnt += 1
+                self.particles.count += 1
 
                 # The code starts at "step 2" as step one happens
                 # during initialization
-                # if cnt % 50 == 0:
-                #     print('Completed step {}/{}'.format(cnt , \
+                # if self.particles.count % 50 == 0:
+                #     print('Completed step {}/{}'.format(self.particles.count , \
                 #                 self.time.totalsteps))
 
         self._ncid.close()

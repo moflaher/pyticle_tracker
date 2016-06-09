@@ -28,17 +28,50 @@ def rungekutta(self):
     if '3D' in self.opt.gridDim:
         chiz[:, 0] = particles.w
 
+    if self.opt.diffusion:
+        ff = particles.fudgefactor
+        diffh = np.zeros((particles.npts))
+        diffx = np.zeros((particles.npts))
+        diffy = np.zeros((particles.npts))
+        if '3D' in self.opt.gridDim:
+            diffv = np.zeros((particles.npts))
+            diffz = np.zeros((particles.npts))
+
+        diffh = particles.viscofhp / ff
+        diffx = particles.viscofhx / ff
+        diffy = particles.viscofhy / ff
+        if '3D' in self.opt.gridDim:
+            diffv = particles.khp / ff
+            diffz = particles.khz / ff
+
+    # Loop over RK stages
     for ns in range(1, mstage):
         # Update particle positions at stage n
-        particles.xpt  = particles.x  + (a_rk[ns] * self.time.dt) * chix[:, ns-1]
-        particles.ypt  = particles.y  + (a_rk[ns] * self.time.dt) * chiy[:, ns-1]
-        if '3D' in self.opt.gridDim:
-            particles.zpt  = particles.z  + (a_rk[ns] * self.time.dt) * \
-                                chiz[:, ns-1]
+        if self.opt.diffusion:
+            particles.xpt = particles.x + (a_rk[ns]*self.time.dti) * chix[:,ns-1] \
+                    + diffx[:,ns-1] + np.sqrt(2*diffh[:,ns-1]) * \
+                    particles.wiener[(4*(particles.count - 1)) + ns - 1]
+            particles.ypt = particles.y + (a_rk[ns]*self.time.dti) * chiy[:,ns-1] \
+                    + diffy[:,ns-1] + np.sqrt(2*diffh[:,ns-1]) * \
+                    particles.wiener[(4*(particles.count - 1)) + ns - 1]
+            if '3D' in self.opt.gridDim:
+                particles.zpt = particles.z + (a_rk[ns]*self.time.dti) \
+                    * chiz[:,ns-1] + diffz[:,ns-1] + np.sqrt(2*diffv[:,ns-1]) * \
+                    particles.wiener[(4*(particles.count - 1)) + ns - 1]
+        else:
+            particles.xpt  = particles.x + (a_rk[ns]*self.time.dt) * chix[:, ns-1]
+            particles.ypt  = particles.y + (a_rk[ns]*self.time.dt) * chiy[:, ns-1]
+            if '3D' in self.opt.gridDim:
+                particles.zpt  = particles.z + (a_rk[ns]*self.time.dt) * \
+                                    chiz[:, ns-1]
 
         # Update velocity and elevation fields
         uin  = ((1-c_rk[ns]) * grid.u1 + c_rk[ns] * grid.u2)
         vin  = ((1-c_rk[ns]) * grid.v1 + c_rk[ns] * grid.v2)
+
+        if self.opt.diffusion:
+            viscofhin = ((1-c_rk[ns])*grid.viscofh1 + c_rk[ns]*grid.viscofh2)
+            khin = ((1-c_rk[ns])*grid.kh1 + c_rk[ns]*grid.kh2)
 
         if '3D' in self.opt.gridDim:
             win = ((1-c_rk[ns]) * grid.w1 + c_rk[ns] * grid.w2)
@@ -51,20 +84,22 @@ def rungekutta(self):
             # If particles are above the water place them in the water
             particles.zpt = np.min([particles.zpt, particles.ept], axis=0)
 
-            # If a particles is within cutoff (default - 1cm) of bottom stop movement
+            # If a particles is within cutoff (default-1cm) of bottom stop movement
             particles.inwater = (particles.zpt + particles.hpt) > self.opt.cutoff
             # And if they are at the bottom put them at the bottom not below
             particles.zpt = np.max([particles.zpt, -particles.hpt], axis=0)
 
             # Finally update the sigma position of the particle
             # for layer interpolation of the velocity
-            particles.sigpt = np.divide(particles.zpt,
-                                        -1*(particles.hpt + particles.ept))
+            particles.sigpt = np.divide(particles.zpt, \
+                                        - 1 * (particles.hpt + particles.ept))
 
         usam = interpolate(self, uin, particles)
         vsam = interpolate(self, vin, particles)
         if '3D' in self.opt.gridDim:
             wsam = interpolate(self, win, particles)
+        if self.opt.diffusion:
+            # interpolation goes here
 
         chix[:, ns] = usam
         chiy[:, ns] = vsam
@@ -81,10 +116,23 @@ def rungekutta(self):
         particles.zpt  = particles.z
 
     for ns in range(0, mstage):
-        particles.xpt = particles.xpt + self.time.dt * b_rk[ns] * chix[:,ns]
-        particles.ypt = particles.ypt + self.time.dt * b_rk[ns] * chiy[:,ns]
-        if '3D' in self.opt.gridDim:
-            particles.zpt = particles.zpt + self.time.dt * b_rk[ns] * chiz[:,ns]
+        if self.opt.diffusion:
+            particles.xpt = particles.xpt + (self.time.dt*b_rk[ns] * (chix[:,ns] \
+                    + diffx[:,ns])) + particles.indomain[:] * (np.sqrt(2 * \
+                    diffh[:,ns]) * particles.wiener[4*(particles.count - 1) + ns]
+            particles.ypt = particles.ypt + (self.time.dt*b_rk[ns] * (chiy[:,ns] \
+                    + diffy[:,ns])) + particles.indomain[:] * (np.sqrt(2 * \
+                    diffh[:,ns]) * particles.wiener[4*(particles.count - 1) + ns]
+            if '3D' in self.opt.gridDim:
+                particles.zpt = particles.zpt + (self.time.dt*b_rk[ns] * \
+                    (chiz[:,ns] + diffz[:,ns])) + particles.indomain[:] * \
+                    (np.sqrt(2 * diffv[:,ns]) * \
+                    particles.wiener[4*(particles.count - 1) + ns]
+        else:
+            particles.xpt = particles.xpt + self.time.dt * b_rk[ns] * chix[:,ns]
+            particles.ypt = particles.ypt + self.time.dt * b_rk[ns] * chiy[:,ns]
+            if '3D' in self.opt.gridDim:
+                particles.zpt = particles.zpt + self.time.dt * b_rk[ns]*chiz[:,ns]
 
     # Set particles positions and velocities for this timestep
     # Unless the particle is on the bottom
@@ -96,15 +144,12 @@ def rungekutta(self):
     if '3D' in self.opt.gridDim:
         particles.z[particles.inwater] = particles.zpt[particles.inwater]
         particles.w = interpolate(self, win, particles)
+
+    if self.opt.diffusion:
+        # interpolation goes here!
+
     #particles.indomain = grid.finder.__call__(particles.x, particles.y)
     particles.indomain = __find_hosts(grid, particles)
-
-    if self.opt.awgn:
-        # Additive white Gaussian noise to u, v velocities
-        # Turbulence Intensity -> ~10%
-        speed = np.sqrt(np.power(particles.u, 2) + np.power(particles.v, 2))
-        particles.u = particles.u + np.random.normal(0, 1.0, len(particles.u))*2*speed
-        particles.v = particles.v + np.random.normal(0, 1.0, len(particles.v))*2*speed
 
     return particles
 

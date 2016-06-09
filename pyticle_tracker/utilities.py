@@ -125,7 +125,16 @@ def _set_particles(self, locations):
         particles.w = interpolate(self, self.grid.ww[self.time.starttime,], \
                                     particles)
 
+    if self.opt.diffusion:
+        particles.wiener = np.sqrt(self.time.dt)*np.random.randn(4 * \
+                self.time.totalsteps, 1)
+        particles.fudgefactor = self.opt.diffusionfudgefactor
+        particles.randomstate = self.opt.seed
+        np.random.seed(self.opt.seed)
+
+    # progress counter
     particles.loop = 0
+    particles.count = 1
 
     return particles
 

@@ -39,13 +39,18 @@ def _fvcom_options(options):
     defaults.interpolation = 'triinterp'
     defaults.saveOutput = True
     defaults.ncformat = 'NETCDF3_64BIT'
-    defaults.awgn = False
 
-    # Specifiy the proj projstr so that the code does not default to an LCC project.
+    # Set the diffusion parameter to false
+    defaults.diffusion = False
+    defaults.seed = 100
+    defaults.ff = 1
+
+    # Specifiy the proj projstr so the code does not default to an LCC project.
     defaults.projstr=[]
 
     # Using zlib has a huge performance impact as it has to recompress every save
     defaults.zlib = False
+    # Least significant digit
     defaults.lsd = None
 
     # Default time runs for whole run.
@@ -74,6 +79,9 @@ def _fvcom_options(options):
 
     if defaults.useLL:
         defaults.reqvar += ['lon', 'lat']
+
+    if defaults.diffusion:
+        defaults.reqvar += ['viscofh', 'kh']
 
     if ('2D' in defaults.gridDim) and ('da' in str(defaults.layer)):
         defaults.reqvar += ['ua', 'va']
