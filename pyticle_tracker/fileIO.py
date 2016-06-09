@@ -68,8 +68,6 @@ def init_netcdf(self,outfile):
     ncid.variables['indomain'][0,:] = self.particles.indomain
     ncid.variables['time'][0] = self.particles.time
 
-
-
     #ncid.close()
 
     return ncid
