@@ -33,36 +33,34 @@ def find_layer(grid, particles, fieldshape):
       - fieldshape - determine if data is siglev or siglay
 
     """
-    # Find the upper layer
-    layer = grid.siglaylen -1 - np.sum(particles.sigpt > grid.siglayrep, axis=0)
-    # Find lower layer
-    layer2 = layer + 1
-    # If lower layer is below bottom use upper layer
-    # Which layer is used won't matter because the weights will handle it
-    layer2[layer2==grid.siglaylen] = -1
+    if fieldshape[0]==grid.siglaylen:
+        # Find the upper layer
+        layer = grid.siglaylen -1 - np.sum(particles.sigpt > grid.siglayrep, axis=0)
+        # Find lower layer
+        layer2 = layer + 1
+        # If lower layer is below bottom use upper layer
+        # Which layer is used won't matter because the weights will handle it
+        layer2[layer2==grid.siglaylen] = -1
 
-    # Initialize layers
-    f1 = layer*0 + 0.0
-    f2 = layer*0 + 0.0
+        # Initialize layers
+        f1 = layer*0 + 0.0
+        f2 = layer*0 + 0.0
 
-    # Set weights between layers
-    f1t = (particles.sigpt - grid.siglay[layer]) /\
-          (grid.siglay[layer] - grid.siglay[layer2])
-    f1[layer!=-1] = f1t[layer!=-1]
-    f2[layer2!=-1] = 1 - f1t[layer2!=-1]
+        # Set weights between layers
+        f1t = (particles.sigpt - grid.siglay[layer]) /\
+              (grid.siglay[layer] - grid.siglay[layer2])
+        f1[layer!=-1] = f1t[layer!=-1]
+        f2[layer2!=-1] = 1 - f1t[layer2!=-1]
 
-    # Set weights for above top layer (completely use lower layer
-    # as it doesn't have an upper layer)
-    f2[layer==-1] = 1
-    # Set weights for below botton layer (same calculation as above
-    # however the "bottom layer" siglay is -1)
-    f1t = (particles.sigpt - grid.siglay[layer]) /\
-          (grid.siglay[layer] - -1)
-    f1[layer2==-1] = f1t[layer2==-1]
-    
-    print(grid.siglayrep.shape,grid.siglevrep.shape)
-    print(particles.sigpt,f1,f2,layer,layer2)
-    
+        # Set weights for above top layer (completely use lower layer
+        # as it doesn't have an upper layer)
+        f2[layer==-1] = 1
+        # Set weights for below botton layer (same calculation as above
+        # however the "bottom layer" siglay is -1)
+        f1t = (particles.sigpt - grid.siglay[layer]) /\
+              (grid.siglay[layer] - -1)
+        f1[layer2==-1] = f1t[layer2==-1]
+
     if fieldshape[0]==grid.siglevlen:
         #ttest siglev
         # Find the upper layer
@@ -78,8 +76,20 @@ def find_layer(grid, particles, fieldshape):
         f2 = layer*0 + 0.0
 
         # Set weights between layers
+        print('this')
+        print(particles.sigpt[0])
+        print(grid.siglev)
+        print(layer[0],layer[1])
+        print(grid.siglev[layer][0])
+        print(grid.siglev[layer2][0])
+        print('this2')
+        print(particles.sigpt[1])
+        print(grid.siglev[layer][1])
+        print(grid.siglev[layer2][1])
         f1t = (particles.sigpt - grid.siglev[layer]) /\
               (grid.siglev[layer] - grid.siglev[layer2])
+        print(particles.sigpt - grid.siglev[layer])
+        print(grid.siglev[layer] - grid.siglev[layer2])
         f1[layer!=-1] = f1t[layer!=-1]
         f2[layer2!=-1] = 1 - f1t[layer2!=-1]
 
@@ -88,10 +98,10 @@ def find_layer(grid, particles, fieldshape):
         f2[layer==-1] = 1
         # Set weights for below botton layer (same calculation as above
         # however the "bottom layer" siglay is -1)
-        f1t = (particles.sigpt - grid.siglay[layer]) /\
-              (grid.siglay[layer] - -1)
+        f1t = (particles.sigpt - grid.siglev[layer]) /\
+              (grid.siglev[layer] - -1)
         f1[layer2==-1] = f1t[layer2==-1]
-    
+        
         print(particles.sigpt,f1,f2,layer,layer2)
     
     return f1, f2, layer, layer2

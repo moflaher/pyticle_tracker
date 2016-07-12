@@ -196,12 +196,12 @@ def __load_fvcom(data, options, locations, debug):
     else:
         # Create an array of siglay the size of the number of particles
         # This is so the interpolation code can find the particles layer
-        grid.siglay = grid.siglay[:,0]
+        grid.siglay = -1*grid.siglay[:,0]
         npts = len(locations[:,0])
         grid.siglaylen = len(grid.siglay)
         grid.siglayrep = grid.siglay.repeat(npts).reshape(grid.siglaylen, npts)
         # Same for siglev
-        grid.siglev = grid.siglev[:,0]
+        grid.siglev = -1*grid.siglev[:,0]
         grid.siglevlen = len(grid.siglev)
         grid.siglevrep = grid.siglev.repeat(npts).reshape(grid.siglevlen, npts)
 
