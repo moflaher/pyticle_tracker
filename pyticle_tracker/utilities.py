@@ -94,9 +94,9 @@ def _set_particles(self, locations):
         particles.zpt = particles.z
 
         #Find particle height
-        particles.hpt = interpolate(self, self.grid.h, particles)
+        particles.hpt = interpolate(self, self.grid.h, particles)[0]
         particles.ept = interpolate(self, self.grid.zeta[self.time.starttime,], \
-                                    particles)
+                                    particles)[0]
 
         # If particles are above the water place them in the water
         particles.zpt = np.min([particles.zpt, particles.ept], axis=0)
@@ -118,12 +118,12 @@ def _set_particles(self, locations):
     particles.npts = len(particles.x)
 
     # Run interp code here to get particle velocities here
-    particles.u = interpolate(self, self.grid.u[self.time.starttime,], particles)
-    particles.v = interpolate(self, self.grid.v[self.time.starttime,], particles)
+    particles.u = interpolate(self, self.grid.u[self.time.starttime,], particles)[0]
+    particles.v = interpolate(self, self.grid.v[self.time.starttime,], particles)[0]
 
     if '3D' in self.opt.gridDim:
         particles.w = interpolate(self, self.grid.ww[self.time.starttime,], \
-                                    particles)
+                                    particles)[0]
 
     if self.opt.diffusion:
         particles.wiener = np.sqrt(self.time.dt)*np.random.randn(4 * \
@@ -198,8 +198,12 @@ def __load_fvcom(data, options, locations, debug):
         # This is so the interpolation code can find the particles layer
         grid.siglay = grid.siglay[:,0]
         npts = len(locations[:,0])
-        grid.siglen = len(grid.siglay)
-        grid.sigrep = grid.siglay.repeat(npts).reshape(grid.siglen, npts)
+        grid.siglaylen = len(grid.siglay)
+        grid.siglayrep = grid.siglay.repeat(npts).reshape(grid.siglaylen, npts)
+        # Same for siglev
+        grid.siglev = grid.siglev[:,0]
+        grid.siglevlen = len(grid.siglev)
+        grid.siglevrep = grid.siglev.repeat(npts).reshape(grid.siglevlen, npts)
 
     if (options.useLL) and (options.projstr==[]):
         # Define the lcc projection
@@ -215,6 +219,6 @@ def __load_fvcom(data, options, locations, debug):
         grid.projstr = 'lcc +lon_0='+str(xavg)+' +lat_0='+str(yavg)+' +lat_1='+str(ylower)+' +lat_2='+str(yupper)
 
     if options.useLL:
-        grid.proj = pyp.Proj(proj=options.projstr)
+        grid.proj = pyp.Proj(proj=grid.projstr)
 
     return grid

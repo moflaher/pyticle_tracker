@@ -121,9 +121,8 @@ class pyticle:
 
                 # The code starts at "step 2" as step one happens
                 # during initialization
-                # if self.particles.count % 50 == 0:
-                #     print('Completed step {}/{}'.format(self.particles.count , \
-                #                 self.time.totalsteps))
+                print('Completed step {}/{}'.format(self.particles.count , \
+                                 self.time.totalsteps))
 
         self._ncid.close()
 

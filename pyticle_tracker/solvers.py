@@ -78,8 +78,8 @@ def rungekutta(self):
             zin = ((1-c_rk[ns]) * grid.z1 + c_rk[ns] * grid.z2)
 
             #Find particle height
-            particles.hpt = interpolate(self, grid.h, particles)
-            particles.ept = interpolate(self, zin, particles)
+            particles.hpt = interpolate(self, grid.h, particles)[0]
+            particles.ept = interpolate(self, zin, particles)[0]
 
             # If particles are above the water place them in the water
             particles.zpt = np.min([particles.zpt, particles.ept], axis=0)
@@ -94,11 +94,12 @@ def rungekutta(self):
             particles.sigpt = np.divide(particles.zpt, \
                                         - 1 * (particles.hpt + particles.ept))
 
-        usam = interpolate(self, uin, particles)
-        vsam = interpolate(self, vin, particles)
+        usam = interpolate(self, uin, particles)[0]
+        vsam = interpolate(self, vin, particles)[0]
         if '3D' in self.opt.gridDim:
-            wsam = interpolate(self, win, particles)
-        if self.opt.diffusion:
+            wsam = interpolate(self, win, particles)[0]
+            t,x,y=interpolate(self,grid.kh[10,:,:],particles)
+        #if self.opt.diffusion:
             # interpolation goes here
 
         chix[:, ns] = usam
@@ -119,15 +120,15 @@ def rungekutta(self):
         if self.opt.diffusion:
             particles.xpt = particles.xpt + (self.time.dt*b_rk[ns] * (chix[:,ns] \
                     + diffx[:,ns])) + particles.indomain[:] * (np.sqrt(2 * \
-                    diffh[:,ns]) * particles.wiener[4*(particles.count - 1) + ns]
+                    diffh[:,ns]) * particles.wiener[4*(particles.count - 1) + ns])
             particles.ypt = particles.ypt + (self.time.dt*b_rk[ns] * (chiy[:,ns] \
                     + diffy[:,ns])) + particles.indomain[:] * (np.sqrt(2 * \
-                    diffh[:,ns]) * particles.wiener[4*(particles.count - 1) + ns]
+                    diffh[:,ns]) * particles.wiener[4*(particles.count - 1) + ns])
             if '3D' in self.opt.gridDim:
                 particles.zpt = particles.zpt + (self.time.dt*b_rk[ns] * \
                     (chiz[:,ns] + diffz[:,ns])) + particles.indomain[:] * \
                     (np.sqrt(2 * diffv[:,ns]) * \
-                    particles.wiener[4*(particles.count - 1) + ns]
+                    particles.wiener[4*(particles.count - 1) + ns])
         else:
             particles.xpt = particles.xpt + self.time.dt * b_rk[ns] * chix[:,ns]
             particles.ypt = particles.ypt + self.time.dt * b_rk[ns] * chiy[:,ns]
@@ -138,14 +139,13 @@ def rungekutta(self):
     # Unless the particle is on the bottom
     particles.x[particles.inwater] = particles.xpt[particles.inwater]
     particles.y[particles.inwater] = particles.ypt[particles.inwater]
-    particles.u = interpolate(self, uin, particles)
-    particles.v = interpolate(self, vin, particles)
-
+    particles.u = interpolate(self, uin, particles)[0]
+    particles.v = interpolate(self, vin, particles)[0]
     if '3D' in self.opt.gridDim:
         particles.z[particles.inwater] = particles.zpt[particles.inwater]
-        particles.w = interpolate(self, win, particles)
+        particles.w = interpolate(self, win, particles)[0]
 
-    if self.opt.diffusion:
+    #if self.opt.diffusion:
         # interpolation goes here!
 
     #particles.indomain = grid.finder.__call__(particles.x, particles.y)
