@@ -33,76 +33,42 @@ def find_layer(grid, particles, fieldshape):
       - fieldshape - determine if data is siglev or siglay
 
     """
-    if fieldshape[0]==grid.siglaylen:
-        # Find the upper layer
-        layer = grid.siglaylen -1 - np.sum(particles.sigpt > grid.siglayrep, axis=0)
-        # Find lower layer
-        layer2 = layer + 1
-        # If lower layer is below bottom use upper layer
-        # Which layer is used won't matter because the weights will handle it
-        layer2[layer2==grid.siglaylen] = -1
-
-        # Initialize layers
-        f1 = layer*0 + 0.0
-        f2 = layer*0 + 0.0
-
-        # Set weights between layers
-        f1t = (particles.sigpt - grid.siglay[layer]) /\
-              (grid.siglay[layer] - grid.siglay[layer2])
-        f1[layer!=-1] = f1t[layer!=-1]
-        f2[layer2!=-1] = 1 - f1t[layer2!=-1]
-
-        # Set weights for above top layer (completely use lower layer
-        # as it doesn't have an upper layer)
-        f2[layer==-1] = 1
-        # Set weights for below botton layer (same calculation as above
-        # however the "bottom layer" siglay is -1)
-        f1t = (particles.sigpt - grid.siglay[layer]) /\
-              (grid.siglay[layer] - -1)
-        f1[layer2==-1] = f1t[layer2==-1]
-
     if fieldshape[0]==grid.siglevlen:
-        #ttest siglev
-        # Find the upper layer
-        layer = grid.siglevlen -1 - np.sum(particles.sigpt > grid.siglevrep, axis=0)
-        # Find lower layer
-        layer2 = layer + 1
-        # If lower layer is below bottom use upper layer
-        # Which layer is used won't matter because the weights will handle it
-        layer2[layer2==grid.siglevlen] = -1
+        slen=grid.siglevlen
+        srep=grid.siglevrep
+        slev=grid.siglev
+    else:
+        slen=grid.siglaylen
+        srep=grid.siglayrep
+        slev=grid.siglay
 
-        # Initialize layers
-        f1 = layer*0 + 0.0
-        f2 = layer*0 + 0.0
+    # Find the upper layer
+    layer = np.sum(particles.sigpt > srep, axis=0) - 1
+    # Find lower layer
+    layer2 = layer + 1
+    # If lower layer is below bottom use upper layer
+    # Which layer is used won't matter because the weights will handle it
+    layer2[layer2==slen] = -1
 
-        # Set weights between layers
-        print('this')
-        print(particles.sigpt[0])
-        print(grid.siglev)
-        print(layer[0],layer[1])
-        print(grid.siglev[layer][0])
-        print(grid.siglev[layer2][0])
-        print('this2')
-        print(particles.sigpt[1])
-        print(grid.siglev[layer][1])
-        print(grid.siglev[layer2][1])
-        f1t = (particles.sigpt - grid.siglev[layer]) /\
-              (grid.siglev[layer] - grid.siglev[layer2])
-        print(particles.sigpt - grid.siglev[layer])
-        print(grid.siglev[layer] - grid.siglev[layer2])
-        f1[layer!=-1] = f1t[layer!=-1]
-        f2[layer2!=-1] = 1 - f1t[layer2!=-1]
+    # Initialize layers
+    f1 = layer*0 + 0.0
+    f2 = layer*0 + 0.0
 
-        # Set weights for above top layer (completely use lower layer
-        # as it doesn't have an upper layer)
-        f2[layer==-1] = 1
-        # Set weights for below botton layer (same calculation as above
-        # however the "bottom layer" siglay is -1)
-        f1t = (particles.sigpt - grid.siglev[layer]) /\
-              (grid.siglev[layer] - -1)
-        f1[layer2==-1] = f1t[layer2==-1]
-        
-        print(particles.sigpt,f1,f2,layer,layer2)
+    # Set weights between layers
+    # NOTE: This can throw a warning about division by zero
+    # when layer=maxlayer and layer2=-1.
+    # This does not matter as bottom layer waiting takes care of it.
+    f1t = (slev[layer] - particles.sigpt) / (slev[layer] - slev[layer2])
+    f1[layer!=-1] = 1 - f1t[layer!=-1]
+    f2[layer2!=-1] = f1t[layer2!=-1]
+
+    # Set weights for above top layer (completely use lower layer
+    # as it doesn't have an upper layer)
+    f2[layer==-1] = 1
+    # Set weights for below botton layer (same calculation as above
+    # however the "bottom layer" siglay is -1)
+    f1t = 1 - (particles.sigpt - slev[layer]) / (slev[layer] - -1)
+    f1[layer2==-1] = f1t[layer2==-1]
     
     return f1, f2, layer, layer2
 
@@ -122,18 +88,18 @@ def interpolate(self, field, particles=[]):
         particles = self.particles
 
     # Initialize varx and vary so there is always something to return.
-    varx, vary = None, None
+    varx, vary, vardz = None, None, None
 
     if 'triinterp' in self.opt.interpolation:
         if self.grid.nele in field.shape:
             var = _triinterpE(self, field, particles)
         elif self.grid.node in field.shape:
-            var, varx, vary = _triinterpN(self, field, particles)
+            var, varx, vary, vardz = _triinterpN(self, field, particles)
         else:
             print("Given field doesn'''t match compatible dimensions.")
             sys.exit()
 
-    return var, varx, vary
+    return var, varx, vary, vardz
 
 def _triinterpE(self, field, particles):
     """
@@ -213,6 +179,8 @@ def _triinterpN(self, field, particles):
     grid = self.grid
 
     hosts = __find_hosts(grid, particles)
+    
+    vardz = None
 
     # Find layer
     if len(field.shape)<2:
@@ -243,7 +211,7 @@ def _triinterpN(self, field, particles):
         vary = grid.awy[0, hosts] * var_0 + grid.awy[1, hosts] * \
                 var_1 + grid.awy[2, hosts] * var_2
         var = var0  +  varx * x0c  +  vary * y0c
-
+    
         return var, varx, vary
 
     # Calculate velocities for 2D or upper layer in 3D
@@ -252,14 +220,19 @@ def _triinterpN(self, field, particles):
     if len(field.shape)>1:
         # Interpolation lower layer
         var2, varx2, vary2 = layer_var(layer2)
+
         # Multiply by layer weights
         var = var * f1 + var2 * f2
         varx = varx * f1 + varx2 * f2
         vary = vary2 * f1 + vary2 * f2
+        leveldiff = (grid.hele[hosts]*grid.siglev[layer]) - \
+                    (grid.hele[hosts]*grid.siglev[layer2])
+        vardz = (var2 - var) / leveldiff
 
     # Add code to not update land particles?
 
-    return var, varx, vary
+
+    return var, varx, vary, vardz
     
     
 def __triinterpN(self, field, particles):

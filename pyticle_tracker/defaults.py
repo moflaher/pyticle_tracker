@@ -43,7 +43,7 @@ def _fvcom_options(options):
     # Set the diffusion parameter to false
     defaults.diffusion = False
     defaults.seed = 100
-    defaults.ff = 1
+    defaults.diffusionfudgefactor = 1
 
     # Specifiy the proj projstr so the code does not default to an LCC project.
     defaults.projstr=[]
@@ -78,7 +78,7 @@ def _fvcom_options(options):
     defaults.reqvar = ['x', 'y', 'xc', 'yc', 'time', 'nele', 'node']
 
     if defaults.useLL:
-        defaults.reqvar += ['lon', 'lat','kh']
+        defaults.reqvar += ['lon', 'lat']
 
     if defaults.diffusion:
         defaults.reqvar += ['viscofh', 'kh']

@@ -126,11 +126,18 @@ def _set_particles(self, locations):
                                     particles)[0]
 
     if self.opt.diffusion:
+        particles.viscofhp, particles.viscofhx, particles.viscofhy = \
+            interpolate(self, self.grid.viscofh[self.time.starttime,], particles)[:3]
+        # Some times this can be negative because of the interpolation method, force positive. Not sure how to properly handle this.
+        particles.viscofhp = np.fabs(particles.viscofhp)
+        particles.khp, _, _, particles.khz = \
+            interpolate(self, self.grid.kh[self.time.starttime,], particles)
+
+        particles.randomstate = self.opt.seed
+        np.random.seed(self.opt.seed)
         particles.wiener = np.sqrt(self.time.dt)*np.random.randn(4 * \
                 self.time.totalsteps, 1)
         particles.fudgefactor = self.opt.diffusionfudgefactor
-        particles.randomstate = self.opt.seed
-        np.random.seed(self.opt.seed)
 
     # progress counter
     particles.loop = 0
@@ -220,5 +227,8 @@ def __load_fvcom(data, options, locations, debug):
 
     if options.useLL:
         grid.proj = pyp.Proj(proj=grid.projstr)
+    
+    if options.diffusion:
+        grid.hele = np.sum(grid.h[grid.nv],axis=1)
 
     return grid
