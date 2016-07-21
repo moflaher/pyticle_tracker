@@ -21,6 +21,57 @@ def intriangle(xt, yt, x0, y0):
          (x0 - xt[:, 1]) * (yt[:, 2] - yt[:, 1])
 
     return ((f1 * f3 >= 0) & (f3 * f2 >= 0))
+    
+def find_layer(grid, particles, fieldshape):
+    """
+    ** Function to find which layer particles are in
+       and calculate the layer weights**
+
+    Inputs:
+      - grid - grid object
+      - particles - particle object
+      - fieldshape - determine if data is siglev or siglay
+
+    """
+    if fieldshape[0]==grid.siglevlen:
+        slen=grid.siglevlen
+        srep=grid.siglevrep
+        slev=grid.siglev
+    else:
+        slen=grid.siglaylen
+        srep=grid.siglayrep
+        slev=grid.siglay
+
+    # Find the upper layer
+    layer = np.sum(particles.sigpt > srep, axis=0) - 1
+    # Find lower layer
+    layer2 = layer + 1
+    # If lower layer is below bottom use upper layer
+    # Which layer is used won't matter because the weights will handle it
+    layer2[layer2==slen] = -1
+
+    # Initialize layers
+    f1 = layer*0 + 0.0
+    f2 = layer*0 + 0.0
+
+    # Set weights between layers
+    # NOTE: This can throw a warning about division by zero
+    # when layer=maxlayer and layer2=-1.
+    # This does not matter as bottom layer waiting takes care of it.
+    f1t = (slev[layer] - particles.sigpt) / (slev[layer] - slev[layer2])
+    f1[layer!=-1] = 1 - f1t[layer!=-1]
+    f2[layer2!=-1] = f1t[layer2!=-1]
+
+    # Set weights for above top layer (completely use lower layer
+    # as it doesn't have an upper layer)
+    f2[layer==-1] = 1
+    # Set weights for below botton layer (same calculation as above
+    # however the "bottom layer" siglay is -1)
+    f1t = 1 - (particles.sigpt - slev[layer]) / (slev[layer] - -1)
+    f1[layer2==-1] = f1t[layer2==-1]
+    
+    return f1, f2, layer, layer2
+
 
 def interpolate(self, field, particles=[]):
     """
@@ -36,16 +87,19 @@ def interpolate(self, field, particles=[]):
     if particles == []:
         particles = self.particles
 
+    # Initialize varx and vary so there is always something to return.
+    varx, vary, vardz = None, None, None
+
     if 'triinterp' in self.opt.interpolation:
         if self.grid.nele in field.shape:
             var = _triinterpE(self, field, particles)
         elif self.grid.node in field.shape:
-            var = _triinterpN(self, field, particles)
+            var, varx, vary, vardz = _triinterpN(self, field, particles)
         else:
             print("Given field doesn'''t match compatible dimensions.")
             sys.exit()
 
-    return var
+    return var, varx, vary, vardz
 
 def _triinterpE(self, field, particles):
     """
@@ -67,31 +121,7 @@ def _triinterpE(self, field, particles):
         layer = None
     else:
         # Find the upper layer
-        layer = grid.siglen -1 - np.sum(particles.sigpt > grid.sigrep, axis=0)
-        # Find lower layer
-        layer2 = layer + 1
-        # If lower layer is below bottom use upper layer
-        # Which layer is used won't matter because the weights will handle it
-        layer2[layer2==grid.siglen] = -1
-
-        # Initialize layers
-        f1 = layer*0 + 0.0
-        f2 = layer*0 + 0.0
-
-        # Set weights between layers
-        f1t = (particles.sigpt - grid.siglay[layer]) /\
-              (grid.siglay[layer] - grid.siglay[layer2])
-        f1[layer!=-1] = f1t[layer!=-1]
-        f2[layer2!=-1] = 1 - f1t[layer2!=-1]
-
-        # Set weights for above top layer (completely use lower layer
-        # as it doesn't have an upper layer)
-        f2[layer==-1] = 1
-        # Set weights for below botton layer (same calculation as above
-        # however the "bottom layer" siglay is -1)
-        f1t = (particles.sigpt - grid.siglay[layer]) /\
-              (grid.siglay[layer] - -1)
-        f1[layer2==-1] = f1t[layer2==-1]
+        f1, f2, layer, layer2 = find_layer(grid, particles, field.shape)
 
     # Get distance from element center
     x0c = particles.xpt - grid.xc[hosts]
@@ -124,7 +154,7 @@ def _triinterpE(self, field, particles):
     vel = layer_vel(layer)
 
     if '3D' in self.opt.gridDim:
-        # Tnterpolation lower layer
+        # Interpolation lower layer
         vel2 = layer_vel(layer2)
         # Multiply by layer weights
         vel = vel * f1 + vel2 * f2
@@ -137,6 +167,75 @@ def _triinterpE(self, field, particles):
     return vel
 
 def _triinterpN(self, field, particles):
+    """
+    ** FVCOM interpolation method for node data using grid parameters.**
+
+    Inputs:
+      - self - pyticleClass
+      - field - the field to use for interpolation
+      - particles - the particles to get the depth/elevation for
+    """
+
+    grid = self.grid
+
+    hosts = __find_hosts(grid, particles)
+    
+    vardz = None
+
+    # Find layer
+    if len(field.shape)<2:
+        layer = None
+    else:
+        # Find the upper layer
+        f1, f2, layer, layer2 = find_layer(grid, particles, field.shape)
+    
+
+    # Get distance from element center
+    x0c = particles.xpt - grid.xc[hosts]
+    y0c = particles.ypt - grid.yc[hosts]
+
+    # Get neighbouring elements
+    n0=grid.nv[hosts, 0]
+    n1=grid.nv[hosts, 1]
+    n2=grid.nv[hosts, 2]
+
+    def layer_var(layer):
+        var_0 = (field[layer, n0]).flatten()
+        var_1 = (field[layer, n1]).flatten()
+        var_2 = (field[layer, n2]).flatten()
+
+        var0 = grid.aw0[0, hosts] * var_0 + grid.aw0[1, hosts] * \
+                var_1 + grid.aw0[2, hosts] * var_2
+        varx = grid.awx[0, hosts] * var_0 + grid.awx[1, hosts] * \
+                var_1 + grid.awx[2, hosts] * var_2
+        vary = grid.awy[0, hosts] * var_0 + grid.awy[1, hosts] * \
+                var_1 + grid.awy[2, hosts] * var_2
+        var = var0  +  varx * x0c  +  vary * y0c
+    
+        return var, varx, vary
+
+    # Calculate velocities for 2D or upper layer in 3D
+    var, varx, vary = layer_var(layer)
+    
+    if len(field.shape)>1:
+        # Interpolation lower layer
+        var2, varx2, vary2 = layer_var(layer2)
+
+        # Multiply by layer weights
+        var = var * f1 + var2 * f2
+        varx = varx * f1 + varx2 * f2
+        vary = vary2 * f1 + vary2 * f2
+        leveldiff = (grid.hele[hosts]*grid.siglev[layer]) - \
+                    (grid.hele[hosts]*grid.siglev[layer2])
+        vardz = (var2 - var) / leveldiff
+
+    # Add code to not update land particles?
+
+
+    return var, varx, vary, vardz
+    
+    
+def __triinterpN(self, field, particles):
     """
     ** FVCOM interpolation method for node data using grid parameters.**
 

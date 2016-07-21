@@ -43,7 +43,7 @@ def _fvcom_options(options):
     # Set the diffusion parameter to false
     defaults.diffusion = False
     defaults.seed = 100
-    defaults.ff = 1
+    defaults.diffusionfudgefactor = 1
 
     # Specifiy the proj projstr so the code does not default to an LCC project.
     defaults.projstr=[]
@@ -88,12 +88,15 @@ def _fvcom_options(options):
     elif '2D' in defaults.gridDim:
         defaults.reqvar += ['u', 'v']
     elif '3D' in defaults.gridDim:
-        defaults.reqvar += ['u', 'v', 'ww', 'siglay', 'h', 'zeta']
+        defaults.reqvar += ['u', 'v', 'ww', 'siglay', 'siglev', 'h', 'zeta']
     else:
         print('gridDim must be 2D or 3D!')
 
     if 'triinterp' in defaults.interpolation:
         defaults.reqvar += ['nv', 'nbe', 'a1u', 'a2u', 'aw0', 'awx', 'awy']
+        
+    if ('2D' in defaults.gridDim) and (defaults.diffusion):
+        print('gridDim must 3D to use diffusion')
 
     return defaults
 
