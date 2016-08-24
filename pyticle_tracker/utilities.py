@@ -58,6 +58,29 @@ def _set_time(self):
 
     return time
 
+def _randm_locs(self):
+    """
+    *** Generates n random locations in a circle of radius
+    r centered at a coordinate ***
+
+    Inputs:
+      - pyticleClass (tuple coordinate, radius (float), and number of particles)
+    """
+
+    # note: 1 deg lon ~ 111117 m
+    #       1 def lat ~ 79868 m
+
+    if self.opt.useLL:
+        lon = np.random.uniform(self.opt.centre[0] - self.opt.radius/79868.0, \
+                      self.opt.centre[0] + self.opt.radius/78868.0, self.opt.np)
+        lat = np.random.uniform(self.opt.centre[1] - self.opt.radius/111117.0, \
+                      self.opt.centre[1] + self.opt.radius/111117.0, self.opt.np)
+
+        return lon, lat
+
+    else:
+        pass
+
 
 def _set_particles(self, locations):
     """
@@ -69,15 +92,22 @@ def _set_particles(self, locations):
 
     particles = container()
 
-    locations = np.atleast_2d(locations)
+    if not self.opt.randomStart:
+        locations = np.atleast_2d(locations)
 
     if self.opt.useLL:
-        particles.lon = locations[:, 0]
-        particles.lat = locations[:, 1]
+        if self.opt.randomStart:
+            particles.lon, particles.lat = _randm_locs(self)
+        else:
+            particles.lon = locations[:, 0]
+            particles.lat = locations[:, 1]
         x, y = self.grid.proj(particles.lon, particles.lat)
         particles.x = x
         particles.y = y
     else:
+        # if self.opt.randomStart:
+        #     particles.x, particles.y = _randm_locs()
+        # else:
         particles.x = locations[:, 0]
         particles.y = locations[:, 1]
 
@@ -90,7 +120,10 @@ def _set_particles(self, locations):
         sys.exit()
 
     if '3D' in self.opt.gridDim:
-        particles.z = locations[:,2]
+        if self.opt.randomStart:
+            particles.z = np.tile(-5, self.opt.np)
+        else:
+            particles.z = locations[:,2]
         particles.zpt = particles.z
 
         #Find particle height
@@ -132,7 +165,6 @@ def _set_particles(self, locations):
         particles.viscofhp = np.fabs(particles.viscofhp)
         particles.khp, _, _, particles.khz = \
             interpolate(self, self.grid.kh[self.time.starttime,], particles)
-
         particles.randomstate = self.opt.seed
         np.random.seed(self.opt.seed)
         particles.wiener = np.sqrt(self.time.dt)*np.random.randn(4 * \
@@ -144,9 +176,6 @@ def _set_particles(self, locations):
     particles.count = 1
 
     return particles
-
-
-
 
 
 def __load_fvcom(data, options, locations, debug):
@@ -192,7 +221,6 @@ def __load_fvcom(data, options, locations, debug):
     if options.useLL:
         grid.trigrid = mplt.Triangulation(grid.lon, grid.lat, grid.nv)
 
-
     # Handle 2D cases
     if ('2D' in options.gridDim) and ('da' in str(options.layer)):
         grid.u = grid.ua
@@ -204,7 +232,10 @@ def __load_fvcom(data, options, locations, debug):
         # Create an array of siglay the size of the number of particles
         # This is so the interpolation code can find the particles layer
         grid.siglay = -1*grid.siglay[:,0]
-        npts = len(locations[:,0])
+        if options.randomStart:
+            npts = options.np
+        else:
+            npts = len(locations[:,0])
         grid.siglaylen = len(grid.siglay)
         grid.siglayrep = grid.siglay.repeat(npts).reshape(grid.siglaylen, npts)
         # Same for siglev
@@ -223,11 +254,12 @@ def __load_fvcom(data, options, locations, debug):
         ylower = ( ymax - ymin ) * 0.25 + ymin;
         yupper = ( ymax - ymin ) * 0.75 + ymin;
 
-        grid.projstr = 'lcc +lon_0='+str(xavg)+' +lat_0='+str(yavg)+' +lat_1='+str(ylower)+' +lat_2='+str(yupper)
+        grid.projstr = 'lcc +lon_0='+str(xavg)+' +lat_0='+str(yavg) \
+                + ' +lat_1='+str(ylower)+' +lat_2='+str(yupper)
 
     if options.useLL:
-        grid.proj = pyp.Proj(proj=grid.projstr)
-    
+        grid.proj = pyp.Proj(proj=options.projstr)
+
     if options.diffusion:
         grid.hele = np.sum(grid.h[grid.nv],axis=1)
 
