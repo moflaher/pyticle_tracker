@@ -40,6 +40,13 @@ def _fvcom_options(options):
     defaults.saveOutput = True
     defaults.ncformat = 'NETCDF3_64BIT'
 
+    # parameters for a random start
+    # really only works with lon/lat in 2D right now
+    defaults.randomStart = False
+    defaults.centre = ()
+    defaults.radius = 0
+    defaults.np = 0
+
     # Set the diffusion parameter to false
     defaults.diffusion = False
     defaults.seed = 100
@@ -79,6 +86,9 @@ def _fvcom_options(options):
 
     if defaults.useLL:
         defaults.reqvar += ['lon', 'lat']
+        if defaults.randomStart:
+            pass
+            # defaults.reqvar += ['radius', 'centre', 'np']
 
     if defaults.diffusion:
         defaults.reqvar += ['viscofh', 'kh']
@@ -94,7 +104,7 @@ def _fvcom_options(options):
 
     if 'triinterp' in defaults.interpolation:
         defaults.reqvar += ['nv', 'nbe', 'a1u', 'a2u', 'aw0', 'awx', 'awy']
-        
+
     if ('2D' in defaults.gridDim) and (defaults.diffusion):
         print('gridDim must 3D to use diffusion')
 
