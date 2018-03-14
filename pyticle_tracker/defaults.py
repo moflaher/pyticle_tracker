@@ -64,6 +64,9 @@ def _fvcom_options(options):
     
     # Stop particle vertical motion if water depth is less them X
     defaults.limitv = 0.01
+    
+    # Default particle sinking speed (postive up, m/s)
+    defaults.sinkspeed = 0.0
      
     for key in options:
         setattr(defaults, key, options[key])

@@ -33,7 +33,7 @@ def rungekutta(self):
         particles.xpt  = particles.x  + (a_rk[ns] * self.time.dt) * chix[:, ns-1]        
         particles.ypt  = particles.y  + (a_rk[ns] * self.time.dt) * chiy[:, ns-1]
         if '3D' in self.opt.gridDim:
-            particles.zpt  = particles.z  + (a_rk[ns] * self.time.dt) * chiz[:, ns-1]
+            particles.zpt  = particles.z  + (a_rk[ns] * self.time.dt) * (chiz[:, ns-1] + self.opt.sinkspeed)
 
         # Update velocity and elevation fields
         uin  = ((1-c_rk[ns]) * grid.u1 + c_rk[ns] * grid.u2)
@@ -83,7 +83,7 @@ def rungekutta(self):
         particles.xpt = particles.xpt + self.time.dt * b_rk[ns] * chix[:,ns]
         particles.ypt = particles.ypt + self.time.dt * b_rk[ns] * chiy[:,ns]
         if '3D' in self.opt.gridDim:
-            particles.zpt = particles.zpt + self.time.dt * b_rk[ns] * chiz[:,ns]
+            particles.zpt = particles.zpt + self.time.dt * b_rk[ns] * (chiz[:,ns] + self.opt.sinkspeed)
 
     # Set particles positions and velocities for this timestep
     # Unless the particle is on the bottom
