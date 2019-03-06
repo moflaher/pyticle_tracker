@@ -77,6 +77,9 @@ def _set_particles(self, locations):
         x, y = self.grid.proj(particles.lon, particles.lat)
         particles.x = x
         particles.y = y
+        lon, lat = self.grid.proj(particles.x, particles.y,inverse=True)
+        particles.lon = lon
+        particles.lat = lat
     else:
         particles.x = locations[:, 0]
         particles.y = locations[:, 1]
@@ -108,8 +111,10 @@ def _set_particles(self, locations):
 
         # Finally update the sigma position of the particle
         # for layer interpolation of the velocity
-        particles.sigpt = np.divide(particles.zpt, \
+        particles.sigpt = np.divide(particles.zpt - particles.ept, \
                                     -1*(particles.hpt + particles.ept))
+        particles.z = particles.zpt    
+
     else:
         # If 2D then particles are always *vertically* in the water column
         particles.inwater = (particles.x * 0 + 1).astype(bool)
@@ -192,6 +197,10 @@ def __load_fvcom(data, options, locations, debug):
         grid.siglen = len(grid.siglay)
         grid.sigrep = grid.siglay.repeat(npts).reshape(grid.siglen, npts)
 
+    grid.lon=np.loadtxt('/home/suh001/scratch/passbay_v4/runs/passbay_v4_sjr_flow_limiter_test/input/passbay_v4_lon.dat')
+    grid.lat=np.loadtxt('/home/suh001/scratch/passbay_v4/runs/passbay_v4_sjr_flow_limiter_test/input/passbay_v4_lat.dat')
+
+
     if (options.useLL) and (options.projstr==[]):
         # Define the lcc projection
         xmax = np.nanmax(grid.lon)
@@ -203,9 +212,21 @@ def __load_fvcom(data, options, locations, debug):
         ylower = ( ymax - ymin ) * 0.25 + ymin;
         yupper = ( ymax - ymin ) * 0.75 + ymin;
 
-        grid.projstr = 'lcc +lon_0='+str(xavg)+' +lat_0='+str(yavg)+' +lat_1='+str(ylower)+' +lat_2='+str(yupper)
+        options.projstr = 'lcc +lon_0='+str(xavg)+' +lat_0='+str(yavg)+' +lat_1='+str(ylower)+' +lat_2='+str(yupper)
 
     if options.useLL:
         grid.proj = pyp.Proj(proj=options.projstr)
+        grid.x, grid.y = grid.proj(grid.lon, grid.lat)
+	grid.lonc = grid.lon[grid.nv].mean(axis=1)
+        grid.latc = grid.lat[grid.nv].mean(axis=1)
+        grid.xc, grid.yc = grid.proj(grid.lonc, grid.latc)
+
+    grid.trigridxy = mplt.Triangulation(grid.x, grid.y, grid.nv)
+    grid.finder = grid.trigridxy.get_trifinder()
+    if options.useLL:
+        grid.trigrid = mplt.Triangulation(grid.lon, grid.lat, grid.nv)
+
+
+
 
     return grid

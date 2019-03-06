@@ -57,7 +57,7 @@ def rungekutta(self):
 
             # Finally update the sigma position of the particle
             # for layer interpolation of the velocity
-            particles.sigpt = np.divide(particles.zpt,
+            particles.sigpt = np.divide(particles.zpt - particles.ept,
                                         -1*(particles.hpt + particles.ept))
 
         usam = interpolate(self, uin, particles)
@@ -84,6 +84,10 @@ def rungekutta(self):
         particles.ypt = particles.ypt + self.time.dt * b_rk[ns] * chiy[:,ns]
         if '3D' in self.opt.gridDim:
             particles.zpt = particles.zpt + self.time.dt * b_rk[ns] * (chiz[:,ns] + self.opt.sinkspeed)
+
+
+    # If a particles is within cutoff (default - 1cm) of bottom stop movement
+    particles.inwater = (particles.zpt + particles.hpt) > self.opt.cutoff
 
     # Set particles positions and velocities for this timestep
     # Unless the particle is on the bottom
