@@ -196,10 +196,11 @@ def __load_fvcom(data, options, locations, debug):
         npts = len(locations[:,0])
         grid.siglen = len(grid.siglay)
         grid.sigrep = grid.siglay.repeat(npts).reshape(grid.siglen, npts)
-
-    grid.lon=np.loadtxt('/home/suh001/scratch/passbay_v4/runs/passbay_v4_sjr_flow_limiter_test/input/passbay_v4_lon.dat')
-    grid.lat=np.loadtxt('/home/suh001/scratch/passbay_v4/runs/passbay_v4_sjr_flow_limiter_test/input/passbay_v4_lat.dat')
-
+        
+    # Handle erroneous lon/lat in the nc-file 
+    if options.useLLtxt:
+        grid.lon=np.loadtxt(options.lonTxt)
+        grid.lat=np.loadtxt(options.latTxt)
 
     if (options.useLL) and (options.projstr==[]):
         # Define the lcc projection
@@ -217,7 +218,7 @@ def __load_fvcom(data, options, locations, debug):
     if options.useLL:
         grid.proj = pyp.Proj(proj=options.projstr)
         grid.x, grid.y = grid.proj(grid.lon, grid.lat)
-	grid.lonc = grid.lon[grid.nv].mean(axis=1)
+        grid.lonc = grid.lon[grid.nv].mean(axis=1)
         grid.latc = grid.lat[grid.nv].mean(axis=1)
         grid.xc, grid.yc = grid.proj(grid.lonc, grid.latc)
 

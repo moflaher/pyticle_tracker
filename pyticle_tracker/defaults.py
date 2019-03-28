@@ -69,6 +69,13 @@ def _fvcom_options(options):
     # Default particle sinking speed (postive up, m/s)
     defaults.sinkspeed = 0.0
 
+    # Load lon/lat data from txt files if true    
+    defaults.useLLtxt = False
+    
+    # Specify files to use for lon and lat
+    defaults.lonTxt = ''
+    defaults.latTxt = ''
+
 
     for key in options:
         setattr(defaults, key, options[key])

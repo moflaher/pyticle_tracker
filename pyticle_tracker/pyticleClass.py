@@ -110,9 +110,9 @@ class pyticle:
 
                 # The code starts at "step 2" as step one happens
                 # during initialization
-                # if cnt % 50 == 0:
-                #     print('Completed step {}/{}'.format(cnt , \
-                #                 self.time.totalsteps))
+                if cnt % 50 == 0:
+                    print('Completed step {}/{}'.format(cnt , \
+                                self.time.totalsteps))
 
         self._ncid.close()
 
