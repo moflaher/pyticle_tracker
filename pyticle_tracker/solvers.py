@@ -42,6 +42,9 @@ def rungekutta(self):
         if '3D' in self.opt.gridDim:
             win = ((1-c_rk[ns]) * grid.w1 + c_rk[ns] * grid.w2)
             zin = ((1-c_rk[ns]) * grid.z1 + c_rk[ns] * grid.z2)
+            if self.opt.trackTS:
+                tin = ((1-c_rk[ns]) * grid.t1 + c_rk[ns] * grid.t2)
+                sin = ((1-c_rk[ns]) * grid.s1 + c_rk[ns] * grid.s2)
 
             #Find particle height
             particles.hpt = interpolate(self, grid.h, particles)
@@ -99,6 +102,10 @@ def rungekutta(self):
     if '3D' in self.opt.gridDim:
         particles.z[particles.inwater] = particles.zpt[particles.inwater]
         particles.w = interpolate(self, win, particles)
+    if self.opt.trackTS:
+        particles.temp = interpolate(self, tin, particles)
+        particles.sal = interpolate(self, sin, particles)
+        
     #particles.indomain = grid.finder.__call__(particles.x, particles.y)
     particles.indomain = __find_hosts(grid, particles)
 

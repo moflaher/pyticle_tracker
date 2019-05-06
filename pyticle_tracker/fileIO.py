@@ -42,7 +42,13 @@ def init_netcdf(self,outfile):
             ncid.createVariable('z', 'd', ('time','npts'), zlib=self.opt.zlib, \
                         least_significant_digit=self.opt.lsd)
             ncid.createVariable('w', 'd', ('time','npts'), zlib=self.opt.zlib, \
-                        least_significant_digit=self.opt.lsd)
+                        least_significant_digit=self.opt.lsd) 
+                                               
+        if self.opt.trackTS:
+            ncid.createVariable('temp', 'd', ('time','npts'), zlib=self.opt.zlib, \
+                    least_significant_digit=self.opt.lsd)
+            ncid.createVariable('salinity', 'd', ('time','npts'), zlib=self.opt.zlib, \
+                    least_significant_digit=self.opt.lsd)
 
         if self.opt.useLL:
             ncid.__setattr__('coordinateprojection', self.opt.projstr)
@@ -64,6 +70,10 @@ def init_netcdf(self,outfile):
     if '3D' in self.opt.gridDim:
         ncid.variables['z'][0,:] = self.particles.z
         ncid.variables['w'][0,:] = self.particles.w
+    
+    if self.opt.trackTS:
+        ncid.variables['temp'][0,:] = self.particles.temp
+        ncid.variables['salinity'][0,:] = self.particles.sal
 
     ncid.variables['indomain'][0,:] = self.particles.indomain
     ncid.variables['time'][0] = self.particles.time
@@ -102,6 +112,10 @@ def save_netcdf(self):
     if '3D' in self.opt.gridDim:
         ncid.variables['z'][loop,:] = self.particles.z
         ncid.variables['w'][loop,:] = self.particles.w
+        
+    if self.opt.trackTS:
+        ncid.variables['temp'][loop,:] = self.particles.temp
+        ncid.variables['salinity'][loop,:] = self.particles.sal
 
     ncid.variables['indomain'][loop,:] = self.particles.indomain
     ncid.variables['time'][loop] = self.particles.time

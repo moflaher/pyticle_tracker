@@ -149,31 +149,80 @@ def _triinterpN(self, field, particles):
     grid = self.grid
 
     hosts = __find_hosts(grid, particles)
+        
+    # Find layer
+    if '2D' in self.opt.gridDim or len(field.shape)==1:
+        layer = None
+    else:
+        # Find the upper layer
+        layer = grid.siglen -1 - np.sum(particles.sigpt > grid.sigrep, axis=0)
+        # Find lower layer
+        layer2 = layer + 1
+        # If lower layer is below bottom use upper layer
+        # Which layer is used won't matter because the weights will handle it
+        layer2[layer2==grid.siglen] = -1
+
+        # Initialize layers
+        f1 = layer*0 + 0.0
+        f2 = layer*0 + 0.0
+
+        # Set weights between layers
+        f1t = (particles.sigpt - grid.siglay[layer]) /\
+              (grid.siglay[layer] - grid.siglay[layer2])
+        f1[layer!=-1] = f1t[layer!=-1]
+        f2[layer2!=-1] = 1 - f1t[layer2!=-1]
+
+        # Set weights for above top layer (completely use lower layer
+        # as it doesn't have an upper layer)
+        f2[layer==-1] = 1
+        # Set weights for below botton layer (same calculation as above
+        # however the "bottom layer" siglay is -1)
+        f1t = (particles.sigpt - grid.siglay[layer]) /\
+              (grid.siglay[layer] - -1)
+        f1[layer2==-1] = f1t[layer2==-1]
 
     # Get distance from element center
     x0c = particles.xpt - grid.xc[hosts]
     y0c = particles.ypt - grid.yc[hosts]
 
-    # Get neighbouring elements
+    # Get nodes for elements
     n0=grid.nv[hosts, 0]
     n1=grid.nv[hosts, 1]
     n2=grid.nv[hosts, 2]
 
-    var_0 = (field[n0]).flatten()
-    var_1 = (field[n1]).flatten()
-    var_2 = (field[n2]).flatten()
+    def layer_var(layer):
+        var_0 = (field[layer, n0]).flatten()
+        var_1 = (field[layer, n1]).flatten()
+        var_2 = (field[layer, n2]).flatten()
 
-    var0 = grid.aw0[0, hosts] * var_0 + grid.aw0[1, hosts] * \
-            var_1 + grid.aw0[2, hosts] * var_2
-    varx = grid.awx[0, hosts] * var_0 + grid.awx[1, hosts] * \
-            var_1 + grid.awx[2, hosts] * var_2
-    vary = grid.awy[0, hosts] * var_0 + grid.awy[1, hosts] * \
-            var_1 + grid.awy[2, hosts] * var_2
-    var = var0  +  varx * x0c  +  vary * y0c
+        var0 = grid.aw0[0, hosts] * var_0 + grid.aw0[1, hosts] * \
+                var_1 + grid.aw0[2, hosts] * var_2
+        varx = grid.awx[0, hosts] * var_0 + grid.awx[1, hosts] * \
+                var_1 + grid.awx[2, hosts] * var_2
+        vary = grid.awy[0, hosts] * var_0 + grid.awy[1, hosts] * \
+                var_1 + grid.awy[2, hosts] * var_2
+        var = var0  +  varx * x0c  +  vary * y0c
 
-    # Add code to not update land particles?
+        # Add code to not update land particles?
+
+        return var
+        
+    # Calculate variable for 2D or upper layer in 3D
+    var = layer_var(layer)
+
+    if '3D' in self.opt.gridDim and len(field.shape)>1:
+        # Interpolate lower layer
+        var2 = layer_var(layer2)
+        # Multiply by layer weights
+        var = var * f1 + var2 * f2
+
+    # # Zero variables for any particles on land
+    # var[hosts==-1] = 0
+    # # Zero variables for any particles on the bottom
+    # var[particles.inwater==0] = 0
 
     return var
+    
 
 
 def __find_hosts(grid, particles):

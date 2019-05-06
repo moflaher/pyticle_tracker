@@ -75,10 +75,19 @@ def _fvcom_options(options):
     # Specify files to use for lon and lat
     defaults.lonTxt = ''
     defaults.latTxt = ''
+    
+    # Track Temp and Salinity if true
+    defaults.trackTS = False
 
 
+    # Set specified options
     for key in options:
         setattr(defaults, key, options[key])
+        
+    # Check for non-matching settings
+    if '2D' in defaults.gridDim and defaults.trackTS:
+        print('Cannot track temp and salinity in 2D mode, please switch to 3D')
+        defaults.trackTS = False
 
     # Define required vars based on defaults and/or options
     defaults.reqvar = ['x', 'y', 'xc', 'yc', 'time', 'nele', 'node']
@@ -97,6 +106,8 @@ def _fvcom_options(options):
 
     if 'triinterp' in defaults.interpolation:
         defaults.reqvar += ['nv', 'nbe', 'a1u', 'a2u', 'aw0', 'awx', 'awy']
+    if defaults.trackTS:
+        defaults.reqvar += ['temp', 'salinity']
 
     return defaults
 

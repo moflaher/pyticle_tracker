@@ -129,6 +129,11 @@ def _set_particles(self, locations):
     if '3D' in self.opt.gridDim:
         particles.w = interpolate(self, self.grid.ww[self.time.starttime,], \
                                     particles)
+    if self.opt.trackTS:
+        particles.temp = interpolate(self, self.grid.temp[self.time.starttime,], \
+                                    particles)
+        particles.sal = interpolate(self, self.grid.salinity[self.time.starttime,], \
+                                    particles)
 
     particles.loop = 0
 

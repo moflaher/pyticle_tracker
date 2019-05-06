@@ -66,6 +66,9 @@ class pyticle:
         if '3D' in self.opt.gridDim:
             self.grid.w1 = self.grid.ww[self.time.starttime,]
             self.grid.z1 = self.grid.zeta[self.time.starttime,]
+        if self.opt.trackTS:    
+            self.grid.t1 = self.grid.temp[self.time.starttime,]
+            self.grid.s1 = self.grid.salinity[self.time.starttime,]
 
         # Progress counter
         cnt = 1
@@ -87,6 +90,11 @@ class pyticle:
                             self.grid.ww[ncstep + 1,]*f2
                     self.grid.z2 = self.grid.zeta[ncstep,]*f1 + \
                             self.grid.zeta[ncstep + 1,]*f2
+                if self.opt.trackTS:
+                    self.grid.t2 = self.grid.temp[ncstep,]*f1 + \
+                            self.grid.temp[ncstep + 1,]*f2
+                    self.grid.s2 = self.grid.salinity[ncstep,]*f1 + \
+                            self.grid.salinity[ncstep + 1,]*f2
                 # Move particles
                 self.particles = rungekutta(self)
 
@@ -96,6 +104,9 @@ class pyticle:
                 if '3D' in self.opt.gridDim:
                     self.grid.w1 = self.grid.w2
                     self.grid.z1 = self.grid.z2
+                if self.opt.trackTS:
+                    self.grid.t1 = self.grid.t2
+                    self.grid.s1 = self.grid.s2
 
                 self.particles.time = self.grid.time[ncstep] * f1 +\
                                       self.grid.time[ncstep + 1] * f2
