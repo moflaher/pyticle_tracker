@@ -87,7 +87,8 @@ def rungekutta(self):
 
 
     # If a particles is within cutoff (default - 1cm) of bottom stop movement
-    particles.inwater = (particles.zpt + particles.hpt) > self.opt.cutoff
+    if '3D' in self.opt.gridDim:	
+        particles.inwater = (particles.zpt + particles.hpt) > self.opt.cutoff
 
     # Set particles positions and velocities for this timestep
     # Unless the particle is on the bottom
