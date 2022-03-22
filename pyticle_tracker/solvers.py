@@ -1,6 +1,6 @@
 from __future__ import division, print_function
-from interpolation import *
-from interpolation import __find_hosts
+from .interpolation import *
+from .interpolation import __find_hosts
 
 def rungekutta(self):
     """

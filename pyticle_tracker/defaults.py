@@ -1,5 +1,5 @@
 from __future__ import division, print_function
-from utilities import *
+from .utilities import *
 
 
 def model_options(options):

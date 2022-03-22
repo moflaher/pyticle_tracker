@@ -1,8 +1,8 @@
 from __future__ import division, print_function
-from defaults import *
-from fileIO import *
-from utilities import _set_particles, _set_grid, _set_time
-from solvers import *
+from .defaults import *
+from .fileIO import *
+from .utilities import _set_particles, _set_grid, _set_time
+from .solvers import *
 
 class pyticle:
     """

@@ -5,7 +5,7 @@ import six
 import matplotlib.tri as mplt
 import numpy as np
 import sys
-from interpolation import interpolate
+from .interpolation import interpolate
 
 # Make a dummy class to instantiate an object that is extendable
 class container(object):
